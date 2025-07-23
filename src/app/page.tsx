@@ -13,6 +13,12 @@ import { ImageWorkspace } from "@/components/image-workspace";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { ImageCropper } from "@/components/image-cropper";
+import { v4 as uuidv4 } from "uuid";
+
+export type CustomColor = {
+  id: string;
+  value: string;
+};
 
 export type EditingState = {
   backgroundRemoved: boolean;
@@ -40,6 +46,37 @@ export default function Home() {
     rotation: 0,
     flip: false,
   });
+
+  const [customColors, setCustomColors] = React.useState<CustomColor[]>([
+    { id: uuidv4(), value: "#ffffff" },
+    { id: uuidv4(), value: "#000000" },
+    { id: uuidv4(), value: "#e0e0e0" },
+    { id: uuidv4(), value: "#ffcdd2" },
+    { id: uuidv4(), value: "#c8e6c9" },
+  ]);
+
+  const handleAddColor = (color: string) => {
+    if (customColors.length < 10) {
+      setCustomColors([...customColors, { id: uuidv4(), value: color }]);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Limit reached",
+        description: "You can only have 10 custom colors.",
+      });
+    }
+  };
+
+  const handleUpdateColor = (id: string, value: string) => {
+    setCustomColors(
+      customColors.map((c) => (c.id === id ? { ...c, value } : c))
+    );
+  };
+
+  const handleRemoveColor = (id: string) => {
+    setCustomColors(customColors.filter((c) => c.id !== id));
+  };
+
 
   const handleImageUpload = (file: File) => {
     const reader = new FileReader();
@@ -84,6 +121,7 @@ export default function Home() {
   };
 
   const handleGenerateBackground = async (prompt: string) => {
+    if (!image) return;
     setIsLoading(true);
     setLoadingMessage("Generating background...");
     try {
@@ -138,11 +176,13 @@ export default function Home() {
     setLoadingMessage("Correcting colors...");
     try {
       const result = await correctColor({ photoDataUri: image });
-      setImage(result.correctedPhotoDataUri);
-      toast({
-        title: "Success",
-        description: "Color correction applied.",
-      });
+      if (result?.correctedPhotoDataUri) {
+        setImage(result.correctedPhotoDataUri);
+        toast({
+          title: "Success",
+          description: "Color correction applied.",
+        });
+      }
     } catch (error) {
       console.error(error);
       toast({
@@ -173,7 +213,11 @@ export default function Home() {
           description: "Background removed.",
         });
       } else {
-        throw new Error("Background removal returned no image.");
+         toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Background removal failed to return an image.",
+        });
       }
     } catch (error) {
       console.error(error);
@@ -205,16 +249,38 @@ export default function Home() {
 
   const handleDownload = () => {
     if (!image) return;
-    const link = document.createElement("a");
-    link.href = image;
-    link.download = "ai-photo-ace-edit.png";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast({
-      title: "Image downloaded!",
-      description: "Your masterpiece is saved.",
-    });
+
+    const img = new (window.Image as any)();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      
+      // Apply background if it's a solid color and the background has been "removed"
+      if (editingState.backgroundRemoved && editingState.backgroundColor.startsWith("#")) {
+        ctx.fillStyle = editingState.backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      
+      // Draw the potentially transparent image on top
+      ctx.drawImage(img, 0, 0);
+
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = "ai-photo-ace-edit.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Image downloaded!",
+        description: "Your masterpiece is saved.",
+      });
+    };
+    img.crossOrigin = "anonymous";
+    img.src = image;
   };
 
   const handleCrop = (aspectRatio?: number) => {
@@ -258,6 +324,10 @@ export default function Home() {
           onReset={handleReset}
           onCrop={handleCrop}
           isDisabled={!image || isLoading}
+          customColors={customColors}
+          onAddColor={handleAddColor}
+          onUpdateColor={handleUpdateColor}
+          onRemoveColor={handleRemoveColor}
         />
         <div className="flex flex-col bg-muted/30 dark:bg-black/20 p-4 md:p-8 overflow-auto">
            <ImageWorkspace

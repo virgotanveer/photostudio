@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import type { EditingState } from "@/app/page";
+import type { EditingState, CustomColor } from "@/app/page";
 import {
   Brush,
   Circle,
@@ -31,7 +31,12 @@ import {
   Sparkles,
   Maximize,
   RotateCcw,
+  Plus,
+  Trash2,
+  Palette,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { useToast } from "@/hooks/use-toast";
 
 interface EditorSidebarProps {
   onFaceEnhance: () => void;
@@ -44,6 +49,10 @@ interface EditorSidebarProps {
   onReset: () => void;
   onCrop: (aspectRatio?: number) => void;
   isDisabled: boolean;
+  customColors: CustomColor[];
+  onAddColor: (color: string) => void;
+  onUpdateColor: (id: string, value: string) => void;
+  onRemoveColor: (id: string) => void;
 }
 
 export function EditorSidebar({
@@ -57,11 +66,16 @@ export function EditorSidebar({
   onReset,
   onCrop,
   isDisabled,
+  customColors,
+  onAddColor,
+  onUpdateColor,
+  onRemoveColor,
 }: EditorSidebarProps) {
+  const { toast } = useToast();
   const [prompt, setPrompt] = React.useState("");
   const [cropWidth, setCropWidth] = React.useState("");
   const [cropHeight, setCropHeight] = React.useState("");
-
+  const [newColor, setNewColor] = React.useState("#000000");
 
   const handleColorChange = (color: string) => {
     setEditingState((prev) => ({ ...prev, backgroundColor: color, backgroundRemoved: true }));
@@ -98,12 +112,16 @@ export function EditorSidebar({
     }
   };
 
+  const handleAddNewColor = () => {
+    onAddColor(newColor);
+    setNewColor("#000000");
+  };
 
   return (
     <aside className="border-r border-border/80 bg-card p-4 flex flex-col h-full overflow-y-auto">
       <div className="flex-1">
         <h2 className="text-2xl font-semibold mb-4 font-headline">Edit Tools</h2>
-        <Accordion type="multiple" defaultValue={["background", "enhance", "adjust"]} className="w-full">
+        <Accordion type="multiple" defaultValue={["background", "enhance", "adjust", "palette"]} className="w-full">
           <AccordionItem value="background">
             <AccordionTrigger className="text-lg font-headline">
               <div className="flex items-center gap-3">
@@ -123,20 +141,20 @@ export function EditorSidebar({
               <div className="space-y-2">
                 <Label>Solid Color</Label>
                 <div className="grid grid-cols-5 gap-2">
-                  {["#ffffff", "#000000", "#e0e0e0", "#ffcdd2", "#c8e6c9"].map((color) => (
+                  {customColors.map((color) => (
                     <button
-                      key={color}
-                      onClick={() => handleColorChange(color)}
+                      key={color.id}
+                      onClick={() => handleColorChange(color.value)}
                       className="w-full h-8 rounded-md border-2 transition-all"
-                      style={{ backgroundColor: color, borderColor: editingState.backgroundColor === color ? 'hsl(var(--primary))' : 'transparent' }}
-                      aria-label={`Set background to ${color}`}
+                      style={{ backgroundColor: color.value, borderColor: editingState.backgroundColor === color.value ? 'hsl(var(--primary))' : 'transparent' }}
+                      aria-label={`Set background to ${color.value}`}
                       disabled={isDisabled}
                     />
                   ))}
                 </div>
                  <div className="flex items-center gap-2">
                     <input type="color" value={editingState.backgroundColor.startsWith('#') ? editingState.backgroundColor : '#ffffff'} onChange={(e) => handleColorChange(e.target.value)} className="w-8 h-8 p-0 border-none bg-transparent rounded" disabled={isDisabled}/>
-                    <Input value={editingState.backgroundColor} onChange={(e) => handleColorChange(e.target.value)} placeholder="#RRGGBB" className="flex-1" disabled={isDisabled}/>
+                    <Input value={editingState.backgroundColor} onChange={(e) => handleColorChange(e.target.value)} placeholder="#RRGGBB or url(...)" className="flex-1" disabled={isDisabled}/>
                 </div>
               </div>
               <Separator />
@@ -155,6 +173,65 @@ export function EditorSidebar({
                </div>
             </AccordionContent>
           </AccordionItem>
+          
+          <AccordionItem value="palette">
+            <AccordionTrigger className="text-lg font-headline">
+                <div className="flex items-center gap-3">
+                    <Palette className="h-5 w-5" /> Color Palette
+                </div>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-2">
+                <Label>Custom Colors</Label>
+                <div className="space-y-2">
+                    {customColors.map(color => (
+                        <div key={color.id} className="flex items-center gap-2">
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button
+                                        className="w-8 h-8 rounded-md border"
+                                        style={{ backgroundColor: color.value }}
+                                        disabled={isDisabled}
+                                    />
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                   <input type="color" value={color.value} onChange={(e) => onUpdateColor(color.id, e.target.value)} className="w-16 h-16 p-0 border-none bg-transparent rounded" disabled={isDisabled}/>
+                                </PopoverContent>
+                            </Popover>
+                            <Input
+                                value={color.value}
+                                onChange={(e) => onUpdateColor(color.id, e.target.value)}
+                                className="flex-1"
+                                disabled={isDisabled}
+                            />
+                            <Button variant="ghost" size="icon" onClick={() => onRemoveColor(color.id)} disabled={isDisabled}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+                {customColors.length < 10 && (
+                    <div className="flex items-center gap-2 pt-2">
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    className="w-8 h-8 rounded-md border"
+                                    style={{ backgroundColor: newColor }}
+                                    disabled={isDisabled}
+                                />
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <input type="color" value={newColor} onChange={(e) => setNewColor(e.target.value)} className="w-16 h-16 p-0 border-none bg-transparent rounded" disabled={isDisabled}/>
+                            </PopoverContent>
+                        </Popover>
+                        <Input value={newColor} onChange={(e) => setNewColor(e.target.value)} className="flex-1" disabled={isDisabled}/>
+                        <Button size="icon" onClick={handleAddNewColor} disabled={isDisabled}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
+            </AccordionContent>
+          </AccordionItem>
+
 
           <AccordionItem value="enhance">
             <AccordionTrigger className="text-lg font-headline">

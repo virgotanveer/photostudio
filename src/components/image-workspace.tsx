@@ -75,7 +75,7 @@ export function ImageWorkspace({
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center h-full">
+    <div id="image-container" className="flex-1 flex items-center justify-center h-full">
       <div
         className={cn(
           "relative w-full h-full rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center transition-all duration-300",
