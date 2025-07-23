@@ -47,9 +47,9 @@ const removeBackgroundFlow = ai.defineFlow(
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: [
         {
-          text: `You are an AI-powered photo editor specializing in background removal.
+          text: `You are an AI-powered photo editor specializing in background removal for ID photos.
 
-You will receive a photo as input and your task is to remove the background, leaving only the main subject. The output image must have a transparent background.
+You will receive a portrait photo as input. Your task is to remove the background, leaving only the main subject. It is very important that you preserve the person's head, hair, neck, and shoulders, including their clothing. The output image must have a transparent background.
 
 Make sure the output is still a valid data URI, of the same type as the input (preferably PNG to support transparency).`,
         },
