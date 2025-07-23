@@ -36,32 +36,35 @@ export async function removeBackground(
   return removeBackgroundFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'removeBackgroundPrompt',
-  input: {schema: RemoveBackgroundInputSchema},
-  output: {schema: RemoveBackgroundOutputSchema},
-  prompt: `You are an AI-powered photo editor specializing in background removal.
-
-You will receive a photo as input and your task is to remove the background, leaving only the main subject. The output image must have a transparent background.
-
-Make sure the output is still a valid data URI, of the same type as the input (preferably PNG to support transparency).
-
-Input Photo: {{media url=photoDataUri}}
-
-Photo with background removed:`,
-});
-
 const removeBackgroundFlow = ai.defineFlow(
   {
     name: 'removeBackgroundFlow',
     inputSchema: RemoveBackgroundInputSchema,
     outputSchema: RemoveBackgroundOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const { media } = await ai.generate({
+      prompt: [
+        {
+          text: `You are an AI-powered photo editor specializing in background removal.
+
+You will receive a photo as input and your task is to remove the background, leaving only the main subject. The output image must have a transparent background.
+
+Make sure the output is still a valid data URI, of the same type as the input (preferably PNG to support transparency).`,
+        },
+        { media: { url: input.photoDataUri } },
+      ],
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+
+    if (!media?.url) {
+      throw new Error('No image was returned from the background removal service.');
+    }
+
     return {
-      photoWithBackgroundRemovedDataUri:
-        output!.photoWithBackgroundRemovedDataUri,
+      photoWithBackgroundRemovedDataUri: media.url,
     };
   }
 );
