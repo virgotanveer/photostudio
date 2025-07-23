@@ -68,11 +68,11 @@ const removeBackgroundFlow = ai.defineFlow(
     if (!base64Match) {
       throw new Error('Invalid data URI format. Must include valid MIME type and base64 data.');
     }
-    const base64Image = base64Match[2]; // Extract base64 data without prefix
+    const imageBuffer = Buffer.from(base64Match[2], 'base64');
 
     try {
       const formData = new FormData();
-      formData.append('image_file_b64', base64Image);
+      formData.append('image_file', imageBuffer, { filename: 'input_image.jpg' });
       formData.append('size', 'auto');
 
       console.log('Sending request to remove.bg API...');
