@@ -42,6 +42,7 @@ interface EditorSidebarProps {
   setEditingState: Dispatch<SetStateAction<EditingState>>;
   editingState: EditingState;
   onReset: () => void;
+  onCrop: (aspectRatio?: number) => void;
   isDisabled: boolean;
 }
 
@@ -54,6 +55,7 @@ export function EditorSidebar({
   setEditingState,
   editingState,
   onReset,
+  onCrop,
   isDisabled,
 }: EditorSidebarProps) {
   const [prompt, setPrompt] = React.useState("");
@@ -79,9 +81,21 @@ export function EditorSidebar({
   };
   
   const handleCropPreset = (value: string) => {
-    // This is a placeholder for crop logic.
-    // In a real app, you'd likely use a library for cropping.
-    console.log(`Cropping to ${value}`);
+    const ratios: { [key: string]: number } = {
+      instagram_post: 1 / 1,
+      instagram_story: 9 / 16,
+      linkedin_banner: 4 / 1,
+      twitter_post: 16 / 9,
+    };
+    onCrop(ratios[value]);
+  };
+
+  const handleApplyCustomCrop = () => {
+    const width = parseInt(cropWidth);
+    const height = parseInt(cropHeight);
+    if (!isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
+      onCrop(width / height);
+    }
   };
 
 
@@ -177,7 +191,7 @@ export function EditorSidebar({
                   <SelectContent>
                     <SelectItem value="instagram_post">Instagram Post (1:1)</SelectItem>
                     <SelectItem value="instagram_story">Instagram Story (9:16)</SelectItem>
-                    <SelectItem value="linkedin_banner">LinkedIn Banner</SelectItem>
+                    <SelectItem value="linkedin_banner">LinkedIn Banner (4:1)</SelectItem>
                     <SelectItem value="twitter_post">Twitter Post (16:9)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -185,7 +199,7 @@ export function EditorSidebar({
                     <Input placeholder="Width" type="number" value={cropWidth} onChange={e => setCropWidth(e.target.value)} disabled={isDisabled} />
                     <Input placeholder="Height" type="number" value={cropHeight} onChange={e => setCropHeight(e.target.value)} disabled={isDisabled} />
                 </div>
-                 <Button variant="outline" className="w-full" disabled={isDisabled || !cropWidth || !cropHeight}>Apply Crop</Button>
+                 <Button variant="outline" className="w-full" onClick={handleApplyCustomCrop} disabled={isDisabled || !cropWidth || !cropHeight}>Apply Crop</Button>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" onClick={handleRotate} disabled={isDisabled}><RotateCcw className="mr-2 h-4 w-4" /> Rotate</Button>

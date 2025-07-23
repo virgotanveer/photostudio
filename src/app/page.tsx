@@ -12,6 +12,7 @@ import { EditorSidebar } from "@/components/editor-sidebar";
 import { ImageWorkspace } from "@/components/image-workspace";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { ImageCropper } from "@/components/image-cropper";
 
 export type EditingState = {
   backgroundRemoved: boolean;
@@ -26,6 +27,8 @@ export default function Home() {
   const { toast } = useToast();
   const [image, setImage] = React.useState<string | null>(null);
   const [originalImage, setOriginalImage] = React.useState<string | null>(null);
+  const [isCropping, setIsCropping] = React.useState(false);
+  const [cropAspectRatio, setCropAspectRatio] = React.useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = React.useState(false);
   const [loadingMessage, setLoadingMessage] = React.useState("");
   
@@ -174,10 +177,11 @@ export default function Home() {
       }
     } catch (error) {
       console.error(error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to remove background.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -213,6 +217,32 @@ export default function Home() {
     });
   };
 
+  const handleCrop = (aspectRatio?: number) => {
+    setCropAspectRatio(aspectRatio);
+    setIsCropping(true);
+  };
+  
+  const handleCropComplete = (croppedImage: string) => {
+    setImage(croppedImage);
+    setOriginalImage(croppedImage); // Set the new cropped image as the base for further edits
+    setIsCropping(false);
+    toast({
+      title: "Success",
+      description: "Image cropped.",
+    });
+  };
+
+  if (isCropping && image) {
+    return (
+      <ImageCropper
+        image={image}
+        aspect={cropAspectRatio}
+        onCropComplete={handleCropComplete}
+        onCancel={() => setIsCropping(false)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-background text-foreground font-body">
       <AppHeader />
@@ -226,6 +256,7 @@ export default function Home() {
           setEditingState={setEditingState}
           editingState={editingState}
           onReset={handleReset}
+          onCrop={handleCrop}
           isDisabled={!image || isLoading}
         />
         <div className="flex flex-col bg-muted/30 dark:bg-black/20 p-4 md:p-8 overflow-auto">
