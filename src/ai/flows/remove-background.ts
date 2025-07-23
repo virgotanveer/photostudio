@@ -91,6 +91,12 @@ const removeBackgroundFlow = ai.defineFlow(
         photoWithBackgroundRemovedDataUri: `data:image/png;base64,${resultBase64}`,
       };
     } catch (error: any) {
+      if (error.response?.status === 403) {
+        console.error('Background removal error: Invalid API Key');
+        throw new Error(
+          'Background removal failed: The remove.bg API key is invalid or has insufficient credits. Please check your .env file.'
+        );
+      }
       const errorMessage =
         error.response?.data?.errors?.[0]?.title ||
         error.message ||
