@@ -82,7 +82,7 @@ export function EditorSidebar({
   };
 
   const handleBackgroundTemplate = (templatePrompt: string) => {
-    setEditingState((prev) => ({...prev, backgroundPrompt: templatePrompt}));
+    setPrompt(templatePrompt);
     onGenerateBackground(templatePrompt);
   }
 
@@ -95,6 +95,10 @@ export function EditorSidebar({
   };
   
   const handleCropPreset = (value: string) => {
+    if (value === "custom") {
+        onCrop(undefined);
+        return;
+    }
     const ratios: { [key: string]: number } = {
       instagram_post: 1 / 1,
       instagram_story: 9 / 16,
@@ -109,6 +113,12 @@ export function EditorSidebar({
     const height = parseInt(cropHeight);
     if (!isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
       onCrop(width / height);
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Invalid Dimensions",
+            description: "Please enter valid numbers for width and height.",
+        });
     }
   };
 
@@ -141,7 +151,7 @@ export function EditorSidebar({
               <div className="space-y-2">
                 <Label>Solid Color</Label>
                 <div className="grid grid-cols-5 gap-2">
-                  {customColors.map((color) => (
+                  {customColors.slice(0,5).map((color) => (
                     <button
                       key={color.id}
                       onClick={() => handleColorChange(color.value)}
@@ -266,18 +276,24 @@ export function EditorSidebar({
                     <SelectValue placeholder="Select a preset" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="custom">Custom</SelectItem>
                     <SelectItem value="instagram_post">Instagram Post (1:1)</SelectItem>
                     <SelectItem value="instagram_story">Instagram Story (9:16)</SelectItem>
                     <SelectItem value="linkedin_banner">LinkedIn Banner (4:1)</SelectItem>
                     <SelectItem value="twitter_post">Twitter Post (16:9)</SelectItem>
                   </SelectContent>
                 </Select>
-                 <div className="flex gap-2">
-                    <Input placeholder="Width" type="number" value={cropWidth} onChange={e => setCropWidth(e.target.value)} disabled={isDisabled} />
-                    <Input placeholder="Height" type="number" value={cropHeight} onChange={e => setCropHeight(e.target.value)} disabled={isDisabled} />
+                 <div className="flex items-center gap-2">
+                    <Input placeholder="Width" type="number" value={cropWidth} onChange={e => setCropWidth(e.target.value)} disabled={isDisabled} aria-label="Crop width"/>
+                    <span className="text-muted-foreground">x</span>
+                    <Input placeholder="Height" type="number" value={cropHeight} onChange={e => setCropHeight(e.target.value)} disabled={isDisabled} aria-label="Crop height"/>
+                     <Button variant="outline" size="icon" onClick={handleApplyCustomCrop} disabled={isDisabled || !cropWidth || !cropHeight}>
+                        <Crop className="h-4 w-4" />
+                        <span className="sr-only">Apply Custom Crop</span>
+                    </Button>
                 </div>
-                 <Button variant="outline" className="w-full" onClick={handleApplyCustomCrop} disabled={isDisabled || !cropWidth || !cropHeight}>Apply Crop</Button>
               </div>
+              <Separator />
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" onClick={handleRotate} disabled={isDisabled}><RotateCcw className="mr-2 h-4 w-4" /> Rotate</Button>
                 <Button variant="outline" onClick={handleFlip} disabled={isDisabled}><FlipHorizontal className="mr-2 h-4 w-4" /> Flip</Button>
