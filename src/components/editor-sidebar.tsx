@@ -26,11 +26,9 @@ import {
   Crop,
   Droplet,
   FlipHorizontal,
-  Eraser,
   Image,
   RefreshCw,
   Sparkles,
-  Type,
   Maximize,
   RotateCcw,
 } from "lucide-react";
@@ -38,6 +36,8 @@ import {
 interface EditorSidebarProps {
   onFaceEnhance: () => void;
   onGenerateBackground: (prompt: string) => void;
+  onUpscaleImage: () => void;
+  onCorrectColor: () => void;
   setEditingState: Dispatch<SetStateAction<EditingState>>;
   editingState: EditingState;
   onReset: () => void;
@@ -47,12 +47,17 @@ interface EditorSidebarProps {
 export function EditorSidebar({
   onFaceEnhance,
   onGenerateBackground,
+  onUpscaleImage,
+  onCorrectColor,
   setEditingState,
   editingState,
   onReset,
   isDisabled,
 }: EditorSidebarProps) {
   const [prompt, setPrompt] = React.useState("");
+  const [cropWidth, setCropWidth] = React.useState("");
+  const [cropHeight, setCropHeight] = React.useState("");
+
 
   const handleColorChange = (color: string) => {
     setEditingState((prev) => ({ ...prev, backgroundColor: color, backgroundRemoved: true }));
@@ -63,11 +68,26 @@ export function EditorSidebar({
     onGenerateBackground(templatePrompt);
   }
 
+  const handleRotate = () => {
+    setEditingState(prev => ({ ...prev, rotation: (prev.rotation + 90) % 360 }));
+  };
+
+  const handleFlip = () => {
+    setEditingState(prev => ({ ...prev, flip: !prev.flip }));
+  };
+  
+  const handleCropPreset = (value: string) => {
+    // This is a placeholder for crop logic.
+    // In a real app, you'd likely use a library for cropping.
+    console.log(`Cropping to ${value}`);
+  };
+
+
   return (
     <aside className="border-r border-border/80 bg-card p-4 flex flex-col h-full overflow-y-auto">
       <div className="flex-1">
         <h2 className="text-2xl font-semibold mb-4 font-headline">Edit Tools</h2>
-        <Accordion type="multiple" defaultValue={["background", "enhance"]} className="w-full">
+        <Accordion type="multiple" defaultValue={["background", "enhance", "adjust"]} className="w-full">
           <AccordionItem value="background">
             <AccordionTrigger className="text-lg font-headline">
               <div className="flex items-center gap-3">
@@ -76,13 +96,13 @@ export function EditorSidebar({
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-2">
               <Button
-                onClick={() => setEditingState((prev) => ({ ...prev, backgroundRemoved: !prev.backgroundRemoved }))}
-                variant={editingState.backgroundRemoved ? "secondary" : "outline"}
+                onClick={() => setEditingState((prev) => ({ ...prev, backgroundRemoved: !prev.backgroundRemoved, backgroundColor: 'transparent' }))}
+                variant={editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? "secondary" : "outline"}
                 className="w-full"
                 disabled={isDisabled}
               >
                 <Brush className="mr-2 h-4 w-4" />
-                {editingState.backgroundRemoved ? 'Show Original Background' : 'Remove Background'}
+                {editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? 'Show Original Background' : 'Remove Background'}
               </Button>
               <div className="space-y-2">
                 <Label>Solid Color</Label>
@@ -127,13 +147,13 @@ export function EditorSidebar({
               </div>
             </AccordionTrigger>
             <AccordionContent className="space-y-2 pt-2">
-              <Button onClick={onFaceEnhance} className="w-full" disabled={isDisabled}>
+              <Button onClick={onFaceEnhance} className="w-full" variant="outline" disabled={isDisabled}>
                 <Circle className="mr-2 h-4 w-4" /> AI Enhance Face
               </Button>
-               <Button variant="outline" className="w-full" disabled={isDisabled}>
+               <Button variant="outline" className="w-full" onClick={onUpscaleImage} disabled={isDisabled}>
                 <Maximize className="mr-2 h-4 w-4" /> AI Upscale Image
               </Button>
-               <Button variant="outline" className="w-full" disabled={isDisabled}>
+               <Button variant="outline" className="w-full" onClick={onCorrectColor} disabled={isDisabled}>
                 <Droplet className="mr-2 h-4 w-4" /> AI Color Correction
               </Button>
             </AccordionContent>
@@ -148,7 +168,7 @@ export function EditorSidebar({
             <AccordionContent className="space-y-4 pt-2">
               <div className="space-y-2">
                 <Label>Crop & Resize</Label>
-                <Select disabled={isDisabled}>
+                <Select onValueChange={handleCropPreset} disabled={isDisabled}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a preset" />
                   </SelectTrigger>
@@ -160,13 +180,14 @@ export function EditorSidebar({
                   </SelectContent>
                 </Select>
                  <div className="flex gap-2">
-                    <Input placeholder="Width" type="number" disabled={isDisabled} />
-                    <Input placeholder="Height" type="number" disabled={isDisabled} />
+                    <Input placeholder="Width" type="number" value={cropWidth} onChange={e => setCropWidth(e.target.value)} disabled={isDisabled} />
+                    <Input placeholder="Height" type="number" value={cropHeight} onChange={e => setCropHeight(e.target.value)} disabled={isDisabled} />
                 </div>
+                 <Button variant="outline" className="w-full" disabled={isDisabled || !cropWidth || !cropHeight}>Apply Crop</Button>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" disabled={isDisabled}><RotateCcw className="mr-2 h-4 w-4" /> Rotate</Button>
-                <Button variant="outline" disabled={isDisabled}><FlipHorizontal className="mr-2 h-4 w-4" /> Flip</Button>
+                <Button variant="outline" onClick={handleRotate} disabled={isDisabled}><RotateCcw className="mr-2 h-4 w-4" /> Rotate</Button>
+                <Button variant="outline" onClick={handleFlip} disabled={isDisabled}><FlipHorizontal className="mr-2 h-4 w-4" /> Flip</Button>
               </div>
             </AccordionContent>
           </AccordionItem>

@@ -3,6 +3,8 @@
 import * as React from "react";
 import { enhanceFace } from "@/ai/flows/enhance-face";
 import { generateBackground } from "@/ai/flows/generate-background";
+import { upscaleImage } from "@/ai/flows/upscale-image";
+import { correctColor } from "@/ai/flows/correct-color";
 import { useToast } from "@/hooks/use-toast";
 import { AppHeader } from "@/components/app-header";
 import { EditorSidebar } from "@/components/editor-sidebar";
@@ -15,6 +17,8 @@ export type EditingState = {
   backgroundPrompt: string;
   backgroundColor: string;
   faceEnhanced: boolean;
+  rotation: number;
+  flip: boolean;
 };
 
 export default function Home() {
@@ -29,6 +33,8 @@ export default function Home() {
     backgroundPrompt: "",
     backgroundColor: "transparent",
     faceEnhanced: false,
+    rotation: 0,
+    flip: false,
   });
 
   const handleImageUpload = (file: File) => {
@@ -42,6 +48,8 @@ export default function Home() {
         backgroundPrompt: "",
         backgroundColor: "transparent",
         faceEnhanced: false,
+        rotation: 0,
+        flip: false,
       });
     };
     reader.readAsDataURL(file);
@@ -97,6 +105,52 @@ export default function Home() {
     }
   };
 
+  const handleUpscaleImage = async () => {
+    if (!image) return;
+    setIsLoading(true);
+    setLoadingMessage("Upscaling image...");
+    try {
+      const result = await upscaleImage({ photoDataUri: image });
+      setImage(result.upscaledPhotoDataUri);
+      toast({
+        title: "Success",
+        description: "Image upscaled.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to upscale image.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCorrectColor = async () => {
+    if (!image) return;
+    setIsLoading(true);
+    setLoadingMessage("Correcting colors...");
+    try {
+      const result = await correctColor({ photoDataUri: image });
+      setImage(result.correctedPhotoDataUri);
+      toast({
+        title: "Success",
+        description: "Color correction applied.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to correct colors.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleReset = () => {
     if (originalImage) {
       setImage(originalImage);
@@ -105,6 +159,8 @@ export default function Home() {
         backgroundPrompt: "",
         backgroundColor: "transparent",
         faceEnhanced: false,
+        rotation: 0,
+        flip: false,
       });
     }
   }
@@ -130,6 +186,8 @@ export default function Home() {
         <EditorSidebar
           onFaceEnhance={handleFaceEnhance}
           onGenerateBackground={handleGenerateBackground}
+          onUpscaleImage={handleUpscaleImage}
+          onCorrectColor={handleCorrectColor}
           setEditingState={setEditingState}
           editingState={editingState}
           onReset={handleReset}

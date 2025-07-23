@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { UploadCloud, Image as ImageIcon } from "lucide-react";
+import { UploadCloud } from "lucide-react";
 import type { EditingState } from "@/app/page";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "./ui/skeleton";
 
 interface ImageWorkspaceProps {
   image: string | null;
@@ -70,6 +69,11 @@ export function ImageWorkspace({
         backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
       };
 
+  const imageStyle: React.CSSProperties = {
+    transform: `rotate(${editingState.rotation}deg) scaleX(${editingState.flip ? -1 : 1})`,
+    imageRendering: 'pixelated'
+  }
+
   return (
     <div className="flex-1 flex items-center justify-center h-full">
       <div
@@ -95,19 +99,30 @@ export function ImageWorkspace({
             className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-lg"
             style={backgroundStyle}
           >
-            <Image
-              src={image}
-              alt="Edited photo"
-              width={800}
-              height={800}
-              className={cn(
-                "object-contain max-w-full max-h-full transition-transform duration-300 ease-in-out",
-                { "mix-blend-normal": editingState.backgroundRemoved }
-              )}
-              style={{
-                imageRendering: 'pixelated'
-              }}
-            />
+            <div className={cn("absolute inset-0 transition-transform duration-300 ease-in-out", { 'mix-blend-normal': editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' })} style={imageStyle}>
+                <Image
+                src={editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? image : originalImage!}
+                alt="Original for background removal"
+                width={800}
+                height={800}
+                className="object-contain max-w-full max-h-full absolute inset-0"
+                />
+            </div>
+            <div className={cn("relative transition-transform duration-300 ease-in-out")} style={imageStyle}>
+                 <Image
+                    src={image}
+                    alt="Edited photo"
+                    width={800}
+                    height={800}
+                    className="object-contain max-w-full max-h-full"
+                    style={{
+                        maskImage: editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? `url(${image})` : 'none',
+                        maskMode: editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? 'alpha' : 'unset',
+                        WebkitMaskImage: editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? `url(${image})` : 'none',
+                        WebkitMaskMode: editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? 'alpha' : undefined,
+                    }}
+                />
+            </div>
           </div>
         ) : (
           <div
