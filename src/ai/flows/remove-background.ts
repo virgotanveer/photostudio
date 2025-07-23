@@ -42,7 +42,7 @@ const removeBackgroundPrompt = ai.definePrompt({
   output: { schema: RemoveBackgroundOutputSchema },
   prompt: `Remove the background from this image. Preserve the person's head, hair, neck, and shoulders. The background should be transparent.
   
-  Input photo: {{media url=photoDataUri}}`
+Input photo: {{media url=photoDataUri}}`
 });
 
 
