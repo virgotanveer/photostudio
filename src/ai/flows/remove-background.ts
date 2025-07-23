@@ -60,7 +60,7 @@ const removeBackgroundFlow = ai.defineFlow(
   async (input) => {
     const { output } = await removeBackgroundPrompt(input);
 
-    if (!output?.photoWithBackgroundRemovedDataUri) {
+    if (!output) {
       throw new Error('No image was returned from the background removal service.');
     }
 
