@@ -32,31 +32,36 @@ export async function correctColor(input: CorrectColorInput): Promise<CorrectCol
   return correctColorFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'correctColorPrompt',
-  input: {schema: CorrectColorInputSchema},
-  output: {schema: CorrectColorOutputSchema},
-  prompt: `You are an AI-powered photo editor specializing in color correction.
-
-You will receive a photo as input and correct its colors to be more vibrant and balanced, while preserving a natural look.
-
-Make sure the output is still a valid data URI, of the same type as the input.
-
-Input Photo: {{media url=photoDataUri}}
-
-Corrected Photo:`,
-});
-
 const correctColorFlow = ai.defineFlow(
   {
     name: 'correctColorFlow',
     inputSchema: CorrectColorInputSchema,
     outputSchema: CorrectColorOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const { media } = await ai.generate({
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
+      prompt: [
+        {
+          text: 'You are an AI-powered photo editor specializing in color correction. You will receive a photo as input and correct its colors to be more vibrant and balanced, while preserving a natural look. Return the corrected photo. Do not change the dimensions of the photo.',
+        },
+        {
+          media: {
+            url: input.photoDataUri,
+          },
+        },
+      ],
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+
+    if (!media?.url) {
+      throw new Error('Color correction failed to return an image.');
+    }
+
     return {
-      correctedPhotoDataUri: output!.correctedPhotoDataUri,
+      correctedPhotoDataUri: media.url,
     };
   }
 );

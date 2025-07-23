@@ -32,31 +32,36 @@ export async function upscaleImage(input: UpscaleImageInput): Promise<UpscaleIma
   return upscaleImageFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'upscaleImagePrompt',
-  input: {schema: UpscaleImageInputSchema},
-  output: {schema: UpscaleImageOutputSchema},
-  prompt: `You are an AI-powered photo editor specializing in upscaling images.
-
-You will receive a photo as input and upscale it to a higher resolution, adding detail and clarity while preserving the original character.
-
-Make sure the output is still a valid data URI, of the same type as the input.
-
-Input Photo: {{media url=photoDataUri}}
-
-Upscaled Photo:`,
-});
-
 const upscaleImageFlow = ai.defineFlow(
   {
     name: 'upscaleImageFlow',
     inputSchema: UpscaleImageInputSchema,
     outputSchema: UpscaleImageOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const { media } = await ai.generate({
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
+      prompt: [
+        {
+          text: 'You are an AI-powered photo editor specializing in upscaling images. You will receive a photo as input and upscale it to a higher resolution, adding detail and clarity while preserving the original character. Return the upscaled photo. Do not change the dimensions of the photo.',
+        },
+        {
+          media: {
+            url: input.photoDataUri,
+          },
+        },
+      ],
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+
+    if (!media?.url) {
+      throw new Error('Upscaling failed to return an image.');
+    }
+
     return {
-      upscaledPhotoDataUri: output!.upscaledPhotoDataUri,
+      upscaledPhotoDataUri: media.url,
     };
   }
 );
