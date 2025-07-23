@@ -44,6 +44,7 @@ const removeBackgroundFlow = ai.defineFlow(
   },
   async (input) => {
     const { media } = await ai.generate({
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: [
         {
           text: `You are an AI-powered photo editor specializing in background removal.
