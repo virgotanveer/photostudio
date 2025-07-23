@@ -158,16 +158,20 @@ export default function Home() {
     setLoadingMessage("Removing background...");
     try {
       const result = await removeBackground({ photoDataUri: image });
-      setImage(result.photoWithBackgroundRemovedDataUri);
-      setEditingState(prev => ({
-        ...prev,
-        backgroundRemoved: true,
-        backgroundColor: 'transparent',
-      }));
-      toast({
-        title: "Success",
-        description: "Background removed.",
-      });
+      if (result?.photoWithBackgroundRemovedDataUri) {
+        setImage(result.photoWithBackgroundRemovedDataUri);
+        setEditingState(prev => ({
+          ...prev,
+          backgroundRemoved: true,
+          backgroundColor: 'transparent',
+        }));
+        toast({
+          title: "Success",
+          description: "Background removed.",
+        });
+      } else {
+        throw new Error("Background removal returned no image.");
+      }
     } catch (error) {
       console.error(error);
       toast({
