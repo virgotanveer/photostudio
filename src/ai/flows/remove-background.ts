@@ -23,7 +23,7 @@ const RemoveBackgroundOutputSchema = z.object({
   photoWithBackgroundRemovedDataUri: z
     .string()
     .describe(
-      'The photo with the background removed, as a data URI that must include a MIME type and use Base64 encoding. The background should be transparent.'
+      'The photo with the background removed, as a data URI that must include a MIME type and use Base64 encoding. The background should be transparent and the subject should be preserved.'
     ),
 });
 export type RemoveBackgroundOutput = z.infer<
@@ -36,6 +36,16 @@ export async function removeBackground(
   return removeBackgroundFlow(input);
 }
 
+const removeBackgroundPrompt = ai.definePrompt({
+  name: 'removeBackgroundPrompt',
+  input: { schema: RemoveBackgroundInputSchema },
+  output: { schema: RemoveBackgroundOutputSchema },
+  prompt: `Remove the background from this image. Preserve the person's head, hair, neck, and shoulders. The background should be transparent.
+  
+  Input photo: {{media url=photoDataUri}}`
+});
+
+
 const removeBackgroundFlow = ai.defineFlow(
   {
     name: 'removeBackgroundFlow',
@@ -43,35 +53,14 @@ const removeBackgroundFlow = ai.defineFlow(
     outputSchema: RemoveBackgroundOutputSchema,
   },
   async (input) => {
-    const { media } = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: [
-        {
-          text: `You are an AI-powered photo editor specializing in background removal for ID photos.
+    const { output } = await removeBackgroundPrompt(input);
 
-You will receive a portrait photo as input. Your task is to remove the background, leaving only the main subject. It is very important that you preserve the person's head, hair, neck, and shoulders, including their clothing. The output image must have a transparent background.
-
-Make sure the output is still a valid data URI, of the same type as the input (preferably PNG to support transparency).`,
-        },
-        { media: { url: input.photoDataUri } },
-      ],
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        safetySettings: [
-            {
-              category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-              threshold: 'BLOCK_NONE',
-            },
-        ]
-      },
-    });
-
-    if (!media?.url) {
+    if (!output?.photoWithBackgroundRemovedDataUri) {
       throw new Error('No image was returned from the background removal service.');
     }
 
     return {
-      photoWithBackgroundRemovedDataUri: media.url,
+      photoWithBackgroundRemovedDataUri: output.photoWithBackgroundRemovedDataUri,
     };
   }
 );
