@@ -5,6 +5,7 @@ import { enhanceFace } from "@/ai/flows/enhance-face";
 import { generateBackground } from "@/ai/flows/generate-background";
 import { upscaleImage } from "@/ai/flows/upscale-image";
 import { correctColor } from "@/ai/flows/correct-color";
+import { removeBackground } from "@/ai/flows/remove-background";
 import { useToast } from "@/hooks/use-toast";
 import { AppHeader } from "@/components/app-header";
 import { EditorSidebar } from "@/components/editor-sidebar";
@@ -151,6 +152,35 @@ export default function Home() {
     }
   };
 
+  const handleRemoveBackground = async () => {
+    if (!image) return;
+    setIsLoading(true);
+    setLoadingMessage("Removing background...");
+    try {
+      const result = await removeBackground({ photoDataUri: image });
+      setImage(result.photoWithBackgroundRemovedDataUri);
+      setEditingState(prev => ({
+        ...prev,
+        backgroundRemoved: true,
+        backgroundColor: 'transparent',
+      }));
+      toast({
+        title: "Success",
+        description: "Background removed.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove background.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   const handleReset = () => {
     if (originalImage) {
       setImage(originalImage);
@@ -188,6 +218,7 @@ export default function Home() {
           onGenerateBackground={handleGenerateBackground}
           onUpscaleImage={handleUpscaleImage}
           onCorrectColor={handleCorrectColor}
+          onRemoveBackground={handleRemoveBackground}
           setEditingState={setEditingState}
           editingState={editingState}
           onReset={handleReset}

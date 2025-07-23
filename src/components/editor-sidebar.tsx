@@ -38,6 +38,7 @@ interface EditorSidebarProps {
   onGenerateBackground: (prompt: string) => void;
   onUpscaleImage: () => void;
   onCorrectColor: () => void;
+  onRemoveBackground: () => void;
   setEditingState: Dispatch<SetStateAction<EditingState>>;
   editingState: EditingState;
   onReset: () => void;
@@ -49,6 +50,7 @@ export function EditorSidebar({
   onGenerateBackground,
   onUpscaleImage,
   onCorrectColor,
+  onRemoveBackground,
   setEditingState,
   editingState,
   onReset,
@@ -96,13 +98,13 @@ export function EditorSidebar({
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-2">
               <Button
-                onClick={() => setEditingState((prev) => ({ ...prev, backgroundRemoved: !prev.backgroundRemoved, backgroundColor: 'transparent' }))}
+                onClick={onRemoveBackground}
                 variant={editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? "secondary" : "outline"}
                 className="w-full"
                 disabled={isDisabled}
               >
                 <Brush className="mr-2 h-4 w-4" />
-                {editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? 'Show Original Background' : 'Remove Background'}
+                Remove Background
               </Button>
               <div className="space-y-2">
                 <Label>Solid Color</Label>

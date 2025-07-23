@@ -58,10 +58,10 @@ export function ImageWorkspace({
     }
   };
 
-  const backgroundStyle: React.CSSProperties = editingState.backgroundRemoved
-    ? editingState.backgroundColor.startsWith("#")
-      ? { backgroundColor: editingState.backgroundColor }
-      : { backgroundImage: editingState.backgroundColor }
+  const backgroundStyle: React.CSSProperties = editingState.backgroundColor.startsWith("#")
+    ? { backgroundColor: editingState.backgroundColor }
+    : editingState.backgroundColor.startsWith("url(")
+    ? { backgroundImage: editingState.backgroundColor, backgroundSize: 'cover', backgroundPosition: 'center' }
     : {
         backgroundImage:
           "linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)",
@@ -99,28 +99,13 @@ export function ImageWorkspace({
             className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-lg"
             style={backgroundStyle}
           >
-            <div className={cn("absolute inset-0 transition-transform duration-300 ease-in-out", { 'mix-blend-normal': editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' })} style={imageStyle}>
-                <Image
-                src={editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? image : originalImage!}
-                alt="Original for background removal"
-                width={800}
-                height={800}
-                className="object-contain max-w-full max-h-full absolute inset-0"
-                />
-            </div>
-            <div className={cn("relative transition-transform duration-300 ease-in-out")} style={imageStyle}>
+             <div className={cn("relative transition-transform duration-300 ease-in-out")} style={imageStyle}>
                  <Image
                     src={image}
                     alt="Edited photo"
                     width={800}
                     height={800}
                     className="object-contain max-w-full max-h-full"
-                    style={{
-                        maskImage: editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? `url(${image})` : 'none',
-                        maskMode: editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? 'alpha' : 'unset',
-                        WebkitMaskImage: editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? `url(${image})` : 'none',
-                        WebkitMaskMode: editingState.backgroundRemoved && editingState.backgroundColor === 'transparent' ? 'alpha' : undefined,
-                    }}
                 />
             </div>
           </div>
