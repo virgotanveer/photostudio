@@ -57,6 +57,12 @@ Make sure the output is still a valid data URI, of the same type as the input (p
       ],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
+        safetySettings: [
+            {
+              category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+              threshold: 'BLOCK_NONE',
+            },
+        ]
       },
     });
 
