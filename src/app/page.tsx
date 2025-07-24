@@ -35,6 +35,8 @@ export default function Home() {
   const [originalImage, setOriginalImage] = React.useState<string | null>(null);
   const [isCropping, setIsCropping] = React.useState(false);
   const [cropAspectRatio, setCropAspectRatio] = React.useState<number | undefined>(undefined);
+  const [outputWidth, setOutputWidth] = React.useState<number | undefined>(undefined);
+  const [outputHeight, setOutputHeight] = React.useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = React.useState(false);
   const [loadingMessage, setLoadingMessage] = React.useState("");
   
@@ -321,12 +323,18 @@ export default function Home() {
         }
         photoCtx.drawImage(img, 0, 0);
 
+        if (photoCanvas.width === 0 || photoCanvas.height === 0) {
+            setIsLoading(false);
+            toast({ variant: 'destructive', title: 'Image has no size', description: 'Cannot process an image with zero width or height.' });
+            return;
+        }
+
         const cols = Math.floor(paperWidth / photoCanvas.width);
         const rows = Math.floor(paperHeight / photoCanvas.height);
 
         if (cols === 0 || rows === 0) {
             setIsLoading(false);
-            toast({ variant: 'destructive', title: 'Image too large', description: 'The image is too large to fit on the selected paper size.' });
+            toast({ variant: 'destructive', title: 'Image too large', description: 'The image is too large to fit on the selected paper size. Please resize it first.' });
             return;
         }
 
@@ -355,19 +363,45 @@ export default function Home() {
     img.src = image;
   };
 
-
-  const handleCrop = (aspectRatio?: number) => {
+  const handleCropPreset = (aspectRatio?: number) => {
+    setOutputWidth(undefined);
+    setOutputHeight(undefined);
     setCropAspectRatio(aspectRatio);
+    setIsCropping(true);
+  };
+  
+  const handleResizeAndCrop = (width: number, height: number, unit: string) => {
+    const DPI = 300;
+    let targetWidth = width;
+    let targetHeight = height;
+
+    if (unit === 'in') {
+      targetWidth = width * DPI;
+      targetHeight = height * DPI;
+    } else if (unit === 'cm') {
+      targetWidth = (width / 2.54) * DPI;
+      targetHeight = (height / 2.54) * DPI;
+    } else if (unit === 'mm') {
+      targetWidth = (width / 25.4) * DPI;
+      targetHeight = (height / 25.4) * DPI;
+    }
+    
+    setOutputWidth(Math.round(targetWidth));
+    setOutputHeight(Math.round(targetHeight));
+    setCropAspectRatio(targetWidth / targetHeight);
     setIsCropping(true);
   };
   
   const handleCropComplete = (croppedImage: string) => {
     setImage(croppedImage);
-    setOriginalImage(croppedImage); // Set the new cropped image as the base for further edits
+    setOriginalImage(croppedImage); // Set the new cropped/resized image as the base
     setIsCropping(false);
+    setOutputWidth(undefined);
+    setOutputHeight(undefined);
+    setCropAspectRatio(undefined);
     toast({
       title: "Success",
-      description: "Image cropped.",
+      description: "Image has been resized and cropped.",
     });
   };
 
@@ -376,8 +410,15 @@ export default function Home() {
       <ImageCropper
         image={image}
         aspect={cropAspectRatio}
+        outputWidth={outputWidth}
+        outputHeight={outputHeight}
         onCropComplete={handleCropComplete}
-        onCancel={() => setIsCropping(false)}
+        onCancel={() => {
+          setIsCropping(false);
+          setOutputWidth(undefined);
+          setOutputHeight(undefined);
+          setCropAspectRatio(undefined);
+        }}
       />
     );
   }
@@ -395,7 +436,8 @@ export default function Home() {
           setEditingState={setEditingState}
           editingState={editingState}
           onReset={handleReset}
-          onCrop={handleCrop}
+          onCropPreset={handleCropPreset}
+          onResizeAndCrop={handleResizeAndCrop}
           onPrintExport={handlePrintExport}
           isDisabled={!image || isLoading}
           customColors={customColors}

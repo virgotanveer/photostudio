@@ -11,11 +11,20 @@ import { Check, X } from 'lucide-react';
 interface ImageCropperProps {
   image: string;
   aspect?: number;
+  outputWidth?: number;
+  outputHeight?: number;
   onCropComplete: (croppedImage: string) => void;
   onCancel: () => void;
 }
 
-export function ImageCropper({ image, aspect = 1, onCropComplete, onCancel }: ImageCropperProps) {
+export function ImageCropper({ 
+    image, 
+    aspect, 
+    outputWidth, 
+    outputHeight, 
+    onCropComplete, 
+    onCancel 
+}: ImageCropperProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -46,7 +55,9 @@ export function ImageCropper({ image, aspect = 1, onCropComplete, onCancel }: Im
 
   const getCroppedImg = async (
     imageSrc: string,
-    pixelCrop: Area
+    pixelCrop: Area,
+    outputWidth?: number,
+    outputHeight?: number,
   ): Promise<string> => {
     const image = await createImage(imageSrc);
     const canvas = document.createElement('canvas');
@@ -56,39 +67,34 @@ export function ImageCropper({ image, aspect = 1, onCropComplete, onCancel }: Im
       throw new Error('Could not get canvas context');
     }
     
-    const { width, height } = image;
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = outputWidth || pixelCrop.width;
+    canvas.height = outputHeight || pixelCrop.height;
 
-    ctx.drawImage(image, 0, 0);
-
-    const data = ctx.getImageData(
+    ctx.drawImage(
+      image,
       pixelCrop.x,
       pixelCrop.y,
       pixelCrop.width,
-      pixelCrop.height
+      pixelCrop.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
     );
     
-    canvas.width = pixelCrop.width;
-    canvas.height = pixelCrop.height;
-
-    ctx.putImageData(data, 0, 0);
-
-    return new Promise((resolve) => {
-      resolve(canvas.toDataURL('image/png'));
-    });
+    return canvas.toDataURL('image/png');
   };
 
   const showCroppedImage = useCallback(async () => {
     try {
       if (croppedAreaPixels) {
-        const croppedImage = await getCroppedImg(image, croppedAreaPixels);
+        const croppedImage = await getCroppedImg(image, croppedAreaPixels, outputWidth, outputHeight);
         onCropComplete(croppedImage);
       }
     } catch (e) {
       console.error(e);
     }
-  }, [image, croppedAreaPixels, onCropComplete, getCroppedImg]);
+  }, [image, croppedAreaPixels, onCropComplete, getCroppedImg, outputWidth, outputHeight]);
 
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center">
@@ -99,7 +105,7 @@ export function ImageCropper({ image, aspect = 1, onCropComplete, onCancel }: Im
           zoom={zoom}
           aspect={aspect}
           onCropChange={onCropChange}
-          onZoomChange={(zoom, newZoom) => onZoomChange([newZoom])}
+          onZoomChange={(zoomValue, newZoom) => onZoomChange([newZoom])}
           onCropComplete={handleCropComplete}
         />
       </div>
@@ -119,7 +125,7 @@ export function ImageCropper({ image, aspect = 1, onCropComplete, onCancel }: Im
                 <X className="mr-2 h-4 w-4" /> Cancel
             </Button>
             <Button onClick={showCroppedImage}>
-                <Check className="mr-2 h-4 w-4" /> Apply Crop
+                <Check className="mr-2 h-4 w-4" /> Apply
             </Button>
          </div>
       </div>

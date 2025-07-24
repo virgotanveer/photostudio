@@ -34,6 +34,7 @@ import {
   Plus,
   Trash2,
   Printer,
+  Scissors,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useToast } from "@/hooks/use-toast";
@@ -47,7 +48,8 @@ interface EditorSidebarProps {
   setEditingState: Dispatch<SetStateAction<EditingState>>;
   editingState: EditingState;
   onReset: () => void;
-  onCrop: (aspectRatio?: number) => void;
+  onCropPreset: (aspectRatio?: number) => void;
+  onResizeAndCrop: (width: number, height: number, unit: string) => void;
   onPrintExport: (paperSize: '4x6' | '5x7') => void;
   isDisabled: boolean;
   customColors: CustomColor[];
@@ -65,7 +67,8 @@ export function EditorSidebar({
   setEditingState,
   editingState,
   onReset,
-  onCrop,
+  onCropPreset,
+  onResizeAndCrop,
   onPrintExport,
   isDisabled,
   customColors,
@@ -75,8 +78,9 @@ export function EditorSidebar({
 }: EditorSidebarProps) {
   const { toast } = useToast();
   const [prompt, setPrompt] = React.useState("");
-  const [cropWidth, setCropWidth] = React.useState("");
-  const [cropHeight, setCropHeight] = React.useState("");
+  const [customWidth, setCustomWidth] = React.useState("");
+  const [customHeight, setCustomHeight] = React.useState("");
+  const [customUnit, setCustomUnit] = React.useState("px");
   const [newColor, setNewColor] = React.useState("#000000");
   const [printSize, setPrintSize] = React.useState<'4x6' | '5x7'>('4x6');
 
@@ -102,9 +106,9 @@ export function EditorSidebar({
     setEditingState(prev => ({ ...prev, flip: !prev.flip }));
   };
   
-  const handleCropPreset = (value: string) => {
+  const handleCropPresetChange = (value: string) => {
     if (value === "custom") {
-        onCrop(undefined);
+        onCropPreset(undefined);
         return;
     }
     const ratios: { [key: string]: number } = {
@@ -113,14 +117,14 @@ export function EditorSidebar({
       linkedin_banner: 4 / 1,
       twitter_post: 16 / 9,
     };
-    onCrop(ratios[value]);
+    onCropPreset(ratios[value]);
   };
 
-  const handleApplyCustomCrop = () => {
-    const width = parseInt(cropWidth);
-    const height = parseInt(cropHeight);
+  const handleApplyResizeAndCrop = () => {
+    const width = parseFloat(customWidth);
+    const height = parseFloat(customHeight);
     if (!isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
-      onCrop(width / height);
+      onResizeAndCrop(width, height, customUnit);
     } else {
         toast({
             variant: "destructive",
@@ -177,7 +181,7 @@ export function EditorSidebar({
                         aria-label={`Set background to ${color.value}`}
                         disabled={isDisabled}
                       />
-                      <button onClick={() => onRemoveColor(color.id)} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity" disabled={isDisabled}>
+                       <button onClick={() => onRemoveColor(color.id)} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity" disabled={isDisabled}>
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
@@ -252,28 +256,41 @@ export function EditorSidebar({
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-2">
               <div className="space-y-2">
-                <Label>Crop & Resize</Label>
-                <Select onValueChange={handleCropPreset} disabled={isDisabled}>
+                <Label>Crop by Preset</Label>
+                <Select onValueChange={handleCropPresetChange} disabled={isDisabled}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a preset" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="custom">Custom</SelectItem>
+                    <SelectItem value="custom">Freeform Crop</SelectItem>
                     <SelectItem value="instagram_post">Instagram Post (1:1)</SelectItem>
                     <SelectItem value="instagram_story">Instagram Story (9:16)</SelectItem>
                     <SelectItem value="linkedin_banner">LinkedIn Banner (4:1)</SelectItem>
                     <SelectItem value="twitter_post">Twitter Post (16:9)</SelectItem>
                   </SelectContent>
                 </Select>
-                 <div className="flex items-center gap-2">
-                    <Input placeholder="Width" type="number" value={cropWidth} onChange={e => setCropWidth(e.target.value)} disabled={isDisabled} aria-label="Crop width"/>
-                    <span className="text-muted-foreground">x</span>
-                    <Input placeholder="Height" type="number" value={cropHeight} onChange={e => setCropHeight(e.target.value)} disabled={isDisabled} aria-label="Crop height"/>
-                     <Button variant="outline" size="icon" onClick={handleApplyCustomCrop} disabled={isDisabled || !cropWidth || !cropHeight}>
-                        <Crop className="h-4 w-4" />
-                        <span className="sr-only">Apply Custom Crop</span>
-                    </Button>
+              </div>
+              <Separator />
+               <div className="space-y-2">
+                <Label>Resize & Crop</Label>
+                 <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
+                    <Input placeholder="Width" type="text" value={customWidth} onChange={e => setCustomWidth(e.target.value)} disabled={isDisabled} aria-label="Resize width"/>
+                    <Input placeholder="Height" type="text" value={customHeight} onChange={e => setCustomHeight(e.target.value)} disabled={isDisabled} aria-label="Resize height"/>
+                    <Select value={customUnit} onValueChange={setCustomUnit} disabled={isDisabled}>
+                        <SelectTrigger className="w-[65px]">
+                            <SelectValue/>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="px">px</SelectItem>
+                            <SelectItem value="in">in</SelectItem>
+                            <SelectItem value="cm">cm</SelectItem>
+                            <SelectItem value="mm">mm</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
+                 <Button className="w-full" onClick={handleApplyResizeAndCrop} disabled={isDisabled || !customWidth || !customHeight}>
+                    <Scissors className="mr-2 h-4 w-4" /> Resize & Crop
+                </Button>
               </div>
               <Separator />
               <div className="grid grid-cols-2 gap-2">
