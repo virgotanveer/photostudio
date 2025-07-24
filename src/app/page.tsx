@@ -258,13 +258,11 @@ export default function Home() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       
-      // Apply background if it's a solid color and the background has been "removed"
       if (editingState.backgroundRemoved && editingState.backgroundColor.startsWith("#")) {
         ctx.fillStyle = editingState.backgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
       
-      // Draw the potentially transparent image on top
       ctx.drawImage(img, 0, 0);
 
       const link = document.createElement("a");
@@ -282,6 +280,81 @@ export default function Home() {
     img.crossOrigin = "anonymous";
     img.src = image;
   };
+  
+  const handlePrintExport = (paperSize: '4x6' | '5x7') => {
+    if (!image) return;
+    setIsLoading(true);
+    setLoadingMessage('Creating print layout...');
+
+    const DPI = 300;
+    const paperDimensions = {
+      '4x6': { width: 6 * DPI, height: 4 * DPI },
+      '5x7': { width: 7 * DPI, height: 5 * DPI },
+    };
+
+    const { width: paperWidth, height: paperHeight } = paperDimensions[paperSize];
+    
+    const img = new (window.Image as any)();
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = paperWidth;
+        canvas.height = paperHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            setIsLoading(false);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not create canvas.' });
+            return;
+        }
+
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const photoCanvas = document.createElement("canvas");
+        photoCanvas.width = img.naturalWidth;
+        photoCanvas.height = img.naturalHeight;
+        const photoCtx = photoCanvas.getContext("2d");
+        if (!photoCtx) return;
+
+        if (editingState.backgroundRemoved && editingState.backgroundColor.startsWith("#")) {
+            photoCtx.fillStyle = editingState.backgroundColor;
+            photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
+        }
+        photoCtx.drawImage(img, 0, 0);
+
+        const cols = Math.floor(paperWidth / photoCanvas.width);
+        const rows = Math.floor(paperHeight / photoCanvas.height);
+
+        if (cols === 0 || rows === 0) {
+            setIsLoading(false);
+            toast({ variant: 'destructive', title: 'Image too large', description: 'The image is too large to fit on the selected paper size.' });
+            return;
+        }
+
+        const totalWidth = cols * photoCanvas.width;
+        const totalHeight = rows * photoCanvas.height;
+        const offsetX = (paperWidth - totalWidth) / 2;
+        const offsetY = (paperHeight - totalHeight) / 2;
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                ctx.drawImage(photoCanvas, offsetX + col * photoCanvas.width, offsetY + row * photoCanvas.height);
+            }
+        }
+
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `ai-photo-ace-print-${paperSize}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setIsLoading(false);
+        toast({ title: 'Print layout created!', description: `Your ${paperSize} image is ready.` });
+    };
+    img.crossOrigin = "anonymous";
+    img.src = image;
+  };
+
 
   const handleCrop = (aspectRatio?: number) => {
     setCropAspectRatio(aspectRatio);
@@ -323,6 +396,7 @@ export default function Home() {
           editingState={editingState}
           onReset={handleReset}
           onCrop={handleCrop}
+          onPrintExport={handlePrintExport}
           isDisabled={!image || isLoading}
           customColors={customColors}
           onAddColor={handleAddColor}

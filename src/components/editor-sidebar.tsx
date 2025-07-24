@@ -33,6 +33,7 @@ import {
   RotateCcw,
   Plus,
   Trash2,
+  Printer,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +48,7 @@ interface EditorSidebarProps {
   editingState: EditingState;
   onReset: () => void;
   onCrop: (aspectRatio?: number) => void;
+  onPrintExport: (paperSize: '4x6' | '5x7') => void;
   isDisabled: boolean;
   customColors: CustomColor[];
   onAddColor: (color: string) => void;
@@ -64,6 +66,7 @@ export function EditorSidebar({
   editingState,
   onReset,
   onCrop,
+  onPrintExport,
   isDisabled,
   customColors,
   onAddColor,
@@ -75,6 +78,8 @@ export function EditorSidebar({
   const [cropWidth, setCropWidth] = React.useState("");
   const [cropHeight, setCropHeight] = React.useState("");
   const [newColor, setNewColor] = React.useState("#000000");
+  const [printSize, setPrintSize] = React.useState<'4x6' | '5x7'>('4x6');
+
 
   const handleColorChange = (color: string) => {
     setEditingState((prev) => ({ ...prev, backgroundColor: color, backgroundRemoved: true }));
@@ -134,7 +139,7 @@ export function EditorSidebar({
     <aside className="border-r border-border/80 bg-card p-4 flex flex-col h-full overflow-y-auto">
       <div className="flex-1">
         <h2 className="text-2xl font-semibold mb-4 font-headline">Edit Tools</h2>
-        <Accordion type="multiple" defaultValue={["background", "enhance", "adjust"]} className="w-full">
+        <Accordion type="multiple" defaultValue={["background", "enhance", "adjust", "print"]} className="w-full">
           <AccordionItem value="background">
             <AccordionTrigger className="text-lg font-headline">
               <div className="flex items-center gap-3">
@@ -275,6 +280,31 @@ export function EditorSidebar({
                 <Button variant="outline" onClick={handleRotate} disabled={isDisabled}><RotateCcw className="mr-2 h-4 w-4" /> Rotate</Button>
                 <Button variant="outline" onClick={handleFlip} disabled={isDisabled}><FlipHorizontal className="mr-2 h-4 w-4" /> Flip</Button>
               </div>
+            </AccordionContent>
+          </AccordionItem>
+          
+          <AccordionItem value="print">
+            <AccordionTrigger className="text-lg font-headline">
+                <div className="flex items-center gap-3">
+                    <Printer className="h-5 w-5" /> Print Layout
+                </div>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-2">
+                <div className="space-y-2">
+                    <Label>Paper Size</Label>
+                    <Select onValueChange={(v) => setPrintSize(v as '4x6' | '5x7')} defaultValue="4x6" disabled={isDisabled}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select paper size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="4x6">4 x 6 inches</SelectItem>
+                            <SelectItem value="5x7">5 x 7 inches</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <Button onClick={() => onPrintExport(printSize)} className="w-full" disabled={isDisabled}>
+                    <Printer className="mr-2 h-4 w-4" /> Export for Print
+                </Button>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
