@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -294,7 +295,7 @@ export default function Home() {
       '5x7': { width: 7 * DPI, height: 5 * DPI },
     };
     const BORDER_WIDTH = 0.25; // in pixels
-    const CUTTING_MARGIN = 5; // in pixels
+    const CUTTING_MARGIN = 25; // in pixels
 
     const { width: paperWidth, height: paperHeight } = paperDimensions[paperSize];
     
@@ -484,3 +485,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
