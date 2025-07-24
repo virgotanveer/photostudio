@@ -293,6 +293,8 @@ export default function Home() {
       '4x6': { width: 6 * DPI, height: 4 * DPI },
       '5x7': { width: 7 * DPI, height: 5 * DPI },
     };
+    const BORDER_WIDTH = 0.25; // in pixels
+    const CUTTING_MARGIN = 5; // in pixels
 
     const { width: paperWidth, height: paperHeight } = paperDimensions[paperSize];
     
@@ -312,25 +314,40 @@ export default function Home() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         const photoCanvas = document.createElement("canvas");
-        photoCanvas.width = img.naturalWidth;
-        photoCanvas.height = img.naturalHeight;
+        const photoWithBorderWidth = img.naturalWidth + 2 * BORDER_WIDTH;
+        const photoWithBorderHeight = img.naturalHeight + 2 * BORDER_WIDTH;
+        photoCanvas.width = photoWithBorderWidth;
+        photoCanvas.height = photoWithBorderHeight;
+        
         const photoCtx = photoCanvas.getContext("2d");
         if (!photoCtx) return;
 
+        // Draw border
+        photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
+        photoCtx.lineWidth = BORDER_WIDTH * 2; // multiply by 2 because stroke is centered
+        photoCtx.strokeRect(BORDER_WIDTH, BORDER_WIDTH, img.naturalWidth, img.naturalHeight);
+
+        // Composite background color if needed
         if (editingState.backgroundRemoved && editingState.backgroundColor.startsWith("#")) {
             photoCtx.fillStyle = editingState.backgroundColor;
-            photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
+            photoCtx.fillRect(BORDER_WIDTH, BORDER_WIDTH, img.naturalWidth, img.naturalHeight);
         }
-        photoCtx.drawImage(img, 0, 0);
+        
+        // Draw image over the background and border
+        photoCtx.drawImage(img, BORDER_WIDTH, BORDER_WIDTH);
 
-        if (photoCanvas.width === 0 || photoCanvas.height === 0) {
+
+        if (photoWithBorderWidth === 0 || photoWithBorderHeight === 0) {
             setIsLoading(false);
             toast({ variant: 'destructive', title: 'Image has no size', description: 'Cannot process an image with zero width or height.' });
             return;
         }
-
-        const cols = Math.floor(paperWidth / photoCanvas.width);
-        const rows = Math.floor(paperHeight / photoCanvas.height);
+        
+        const effectivePhotoWidth = photoWithBorderWidth + CUTTING_MARGIN;
+        const effectivePhotoHeight = photoWithBorderHeight + CUTTING_MARGIN;
+        
+        const cols = Math.floor(paperWidth / effectivePhotoWidth);
+        const rows = Math.floor(paperHeight / effectivePhotoHeight);
 
         if (cols === 0 || rows === 0) {
             setIsLoading(false);
@@ -338,14 +355,14 @@ export default function Home() {
             return;
         }
 
-        const totalWidth = cols * photoCanvas.width;
-        const totalHeight = rows * photoCanvas.height;
+        const totalWidth = cols * effectivePhotoWidth - CUTTING_MARGIN;
+        const totalHeight = rows * effectivePhotoHeight - CUTTING_MARGIN;
         const offsetX = (paperWidth - totalWidth) / 2;
         const offsetY = (paperHeight - totalHeight) / 2;
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
-                ctx.drawImage(photoCanvas, offsetX + col * photoCanvas.width, offsetY + row * photoCanvas.height);
+                ctx.drawImage(photoCanvas, offsetX + col * effectivePhotoWidth, offsetY + row * effectivePhotoHeight);
             }
         }
 
