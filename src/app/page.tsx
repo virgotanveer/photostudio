@@ -294,7 +294,7 @@ export default function Home() {
       '4x6': { width: 6 * DPI, height: 4 * DPI },
       '5x7': { width: 7 * DPI, height: 5 * DPI },
     };
-    const BORDER_WIDTH = 0.25; // in pixels
+    const BORDER_WIDTH = 1; // in pixels
     const CUTTING_MARGIN = 25; // in pixels
 
     const { width: paperWidth, height: paperHeight } = paperDimensions[paperSize];
