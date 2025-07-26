@@ -170,8 +170,8 @@ export default function BulkEditPage() {
         const img = new Image();
         img.src = imageFile.processedUri!;
         
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
           img.onerror = reject;
         });
 
@@ -212,7 +212,7 @@ export default function BulkEditPage() {
         // Draw border
         photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
         photoCtx.lineWidth = BORDER_WIDTH;
-        photoCtx.strokeRect(BORDER_WIDTH / 2, BORDER_WIDTH / 2, photoWithBorderWidth - BORDER_WIDTH, photoWithBorderHeight - BORDER_WIDTH);
+        photoCtx.strokeRect(BORDER_WIDTH / 2, BORDER_WIDTH / 2, sourceCanvas.width, sourceCanvas.height);
 
         if (photoWithBorderWidth === 0 || photoWithBorderHeight === 0) {
             toast({ variant: 'destructive', title: 'Image has no size', description: `Cannot process ${imageFile.file.name} as it has zero width or height.` });
@@ -222,8 +222,8 @@ export default function BulkEditPage() {
         const effectivePhotoWidth = photoWithBorderWidth + CUTTING_MARGIN;
         const effectivePhotoHeight = photoWithBorderHeight + CUTTING_MARGIN;
         
-        const cols = Math.floor(paperWidth / effectivePhotoWidth);
-        const rows = Math.floor(paperHeight / effectivePhotoHeight);
+        const cols = Math.floor((paperWidth - CUTTING_MARGIN) / effectivePhotoWidth);
+        const rows = Math.floor((paperHeight - CUTTING_MARGIN) / effectivePhotoHeight);
 
         if (cols === 0 || rows === 0) {
             toast({ variant: 'destructive', title: 'Image too large', description: `${imageFile.file.name} is too large to fit on the selected paper size.` });
