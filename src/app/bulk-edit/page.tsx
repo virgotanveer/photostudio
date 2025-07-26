@@ -156,18 +156,6 @@ export default function BulkEditPage() {
         return;
     }
 
-    const firstImageUri = successfulImages[0].processedUri!;
-    
-    const img = new Image();
-    img.src = firstImageUri;
-    await new Promise(resolve => { img.onload = resolve });
-
-    const sourceCanvas = document.createElement('canvas');
-    sourceCanvas.width = img.width;
-    sourceCanvas.height = img.height;
-    const sourceCtx = sourceCanvas.getContext('2d');
-    if (!sourceCtx) return;
-
     // Common properties for print layout
     const DPI = 300;
     const paperDimensions = {
@@ -176,77 +164,89 @@ export default function BulkEditPage() {
     };
     const BORDER_WIDTH = 1;
     const CUTTING_MARGIN = 25;
-
     const { width: paperWidth, height: paperHeight } = paperDimensions[paperSize];
-    
-    const printCanvas = document.createElement('canvas');
-    printCanvas.width = paperWidth;
-    printCanvas.height = paperHeight;
-    const ctx = printCanvas.getContext('2d');
-    if (!ctx) return;
 
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, printCanvas.width, printCanvas.height);
-    
-    const photoWithBorderWidth = sourceCanvas.width + 2 * BORDER_WIDTH;
-    const photoWithBorderHeight = sourceCanvas.height + 2 * BORDER_WIDTH;
-    
-    const photoCanvas = document.createElement("canvas");
-    photoCanvas.width = photoWithBorderWidth;
-    photoCanvas.height = photoWithBorderHeight;
-    const photoCtx = photoCanvas.getContext("2d");
-    if (!photoCtx) return;
+    for (const imageFile of successfulImages) {
+        const img = new Image();
+        img.src = imageFile.processedUri!;
+        await new Promise(resolve => { img.onload = resolve });
 
-    // Draw border
-    photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
-    photoCtx.lineWidth = BORDER_WIDTH * 2;
-    photoCtx.strokeRect(BORDER_WIDTH, BORDER_WIDTH, sourceCanvas.width, sourceCanvas.height);
+        const sourceCanvas = document.createElement('canvas');
+        sourceCanvas.width = img.width;
+        sourceCanvas.height = img.height;
+        const sourceCtx = sourceCanvas.getContext('2d');
+        if (!sourceCtx) continue;
+        sourceCtx.drawImage(img, 0, 0);
 
-    // Composite background color if needed
-    if (backgroundColor !== 'transparent') {
-        photoCtx.fillStyle = backgroundColor;
-        photoCtx.fillRect(BORDER_WIDTH, BORDER_WIDTH, sourceCanvas.width, sourceCanvas.height);
-    }
-    
-    // Draw image over the background and border
-    photoCtx.drawImage(sourceCanvas, BORDER_WIDTH, BORDER_WIDTH);
+        const printCanvas = document.createElement('canvas');
+        printCanvas.width = paperWidth;
+        printCanvas.height = paperHeight;
+        const ctx = printCanvas.getContext('2d');
+        if (!ctx) continue;
 
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, printCanvas.width, printCanvas.height);
+        
+        const photoWithBorderWidth = sourceCanvas.width + 2 * BORDER_WIDTH;
+        const photoWithBorderHeight = sourceCanvas.height + 2 * BORDER_WIDTH;
+        
+        const photoCanvas = document.createElement("canvas");
+        photoCanvas.width = photoWithBorderWidth;
+        photoCanvas.height = photoWithBorderHeight;
+        const photoCtx = photoCanvas.getContext("2d");
+        if (!photoCtx) continue;
 
-    if (photoWithBorderWidth === 0 || photoWithBorderHeight === 0) {
-        toast({ variant: 'destructive', title: 'Image has no size', description: 'Cannot process an image with zero width or height.' });
-        return;
-    }
-    
-    const effectivePhotoWidth = photoWithBorderWidth + CUTTING_MARGIN;
-    const effectivePhotoHeight = photoWithBorderHeight + CUTTING_MARGIN;
-    
-    const cols = Math.floor(paperWidth / effectivePhotoWidth);
-    const rows = Math.floor(paperHeight / effectivePhotoHeight);
+        // Draw border
+        photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
+        photoCtx.lineWidth = BORDER_WIDTH * 2;
+        photoCtx.strokeRect(BORDER_WIDTH, BORDER_WIDTH, sourceCanvas.width, sourceCanvas.height);
 
-    if (cols === 0 || rows === 0) {
-        toast({ variant: 'destructive', title: 'Image too large', description: 'The image is too large to fit on the selected paper size.' });
-        return;
-    }
-
-    const totalWidth = cols * effectivePhotoWidth - CUTTING_MARGIN;
-    const totalHeight = rows * effectivePhotoHeight - CUTTING_MARGIN;
-    const offsetX = (paperWidth - totalWidth) / 2;
-    const offsetY = (paperHeight - totalHeight) / 2;
-
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            ctx.drawImage(photoCanvas, offsetX + col * effectivePhotoWidth, offsetY + row * effectivePhotoHeight);
+        // Composite background color if needed
+        if (backgroundColor !== 'transparent') {
+            photoCtx.fillStyle = backgroundColor;
+            photoCtx.fillRect(BORDER_WIDTH, BORDER_WIDTH, sourceCanvas.width, sourceCanvas.height);
         }
+        
+        // Draw image over the background and border
+        photoCtx.drawImage(sourceCanvas, BORDER_WIDTH, BORDER_WIDTH);
+
+
+        if (photoWithBorderWidth === 0 || photoWithBorderHeight === 0) {
+            toast({ variant: 'destructive', title: 'Image has no size', description: `Cannot process ${imageFile.file.name} as it has zero width or height.` });
+            continue;
+        }
+        
+        const effectivePhotoWidth = photoWithBorderWidth + CUTTING_MARGIN;
+        const effectivePhotoHeight = photoWithBorderHeight + CUTTING_MARGIN;
+        
+        const cols = Math.floor(paperWidth / effectivePhotoWidth);
+        const rows = Math.floor(paperHeight / effectivePhotoHeight);
+
+        if (cols === 0 || rows === 0) {
+            toast({ variant: 'destructive', title: 'Image too large', description: `${imageFile.file.name} is too large to fit on the selected paper size.` });
+            continue;
+        }
+
+        const totalWidth = cols * effectivePhotoWidth - CUTTING_MARGIN;
+        const totalHeight = rows * effectivePhotoHeight - CUTTING_MARGIN;
+        const offsetX = (paperWidth - totalWidth) / 2;
+        const offsetY = (paperHeight - totalHeight) / 2;
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                ctx.drawImage(photoCanvas, offsetX + col * effectivePhotoWidth, offsetY + row * effectivePhotoHeight);
+            }
+        }
+
+        const link = document.createElement('a');
+        link.href = printCanvas.toDataURL('image/png');
+        link.download = `${imageFile.file.name.split('.')[0]}-print-${paperSize}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
-    const link = document.createElement('a');
-    link.href = printCanvas.toDataURL('image/png');
-    link.download = `ai-photo-ace-bulk-print-${paperSize}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({ title: 'Print layout created!', description: `Your ${paperSize} image is ready.` });
+    toast({ title: 'Print layouts created!', description: `Your ${paperSize} images are ready.` });
   }
 
   const handleCropPresetChange = (value: string) => {
