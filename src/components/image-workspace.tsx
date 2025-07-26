@@ -6,10 +6,10 @@ import Image from "next/image";
 import { UploadCloud } from "lucide-react";
 import type { EditingState } from "@/app/page";
 import { cn } from "@/lib/utils";
+import { ImageCanvas } from "./image-canvas";
 
 interface ImageWorkspaceProps {
   image: string | null;
-  originalImage: string | null;
   onImageUpload: (file: File) => void;
   isLoading: boolean;
   loadingMessage: string;
@@ -18,7 +18,6 @@ interface ImageWorkspaceProps {
 
 export function ImageWorkspace({
   image,
-  originalImage,
   onImageUpload,
   isLoading,
   loadingMessage,
@@ -69,28 +68,9 @@ export function ImageWorkspace({
         backgroundSize: "20px 20px",
         backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
       };
-      
-  const {
-    rotation,
-    flip,
-    brightness,
-    contrast,
-    saturation,
-    temperature,
-  } = editingState;
-
-  // This is a simplified mapping from temperature/highlights/shadows to CSS filters.
-  // A more advanced implementation might use a canvas for pixel-level manipulation.
-  const tempFilter = temperature > 0 ? `sepia(${temperature / 2}%) hue-rotate(-15deg)` : `hue-rotate(${Math.abs(temperature)}deg) saturate(90%)`;
-
-  const imageStyle: React.CSSProperties = {
-    transform: `rotate(${rotation}deg) scaleX(${flip ? -1 : 1})`,
-    filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) ${temperature !== 0 ? tempFilter : ''}`,
-    imageRendering: 'pixelated'
-  }
 
   return (
-    <div id="image-container" className="flex-1 flex items-center justify-center h-full">
+    <div className="flex-1 flex items-center justify-center h-full">
       <div
         className={cn(
           "relative w-full h-full rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center transition-all duration-300",
@@ -114,16 +94,7 @@ export function ImageWorkspace({
             className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-lg"
             style={backgroundStyle}
           >
-             <div className={cn("relative transition-transform duration-300 ease-in-out")}>
-                 <Image
-                    src={image}
-                    alt="Edited photo"
-                    width={800}
-                    height={800}
-                    className="object-contain max-w-full max-h-full"
-                    style={imageStyle}
-                />
-            </div>
+             <ImageCanvas image={image} editingState={editingState} />
           </div>
         ) : (
           <div
@@ -162,3 +133,5 @@ export function ImageWorkspace({
     </div>
   );
 }
+
+    

@@ -54,9 +54,9 @@ export default function Home() {
     faceEnhanced: false,
     rotation: 0,
     flip: false,
-    brightness: 100,
-    contrast: 100,
-    saturation: 100,
+    brightness: 0,
+    contrast: 0,
+    saturation: 0,
     temperature: 0,
     highlights: 0,
     shadows: 0,
@@ -252,93 +252,57 @@ export default function Home() {
   }
 
   const handleDownload = () => {
-    if (!image) return;
-
-    const img = new (window.Image as any)();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      const {
-        brightness,
-        contrast,
-        saturation,
-        temperature,
-        highlights,
-        shadows,
-        rotation,
-        flip,
-        backgroundRemoved,
-        backgroundColor
-      } = editingState;
-
-      const rad = rotation * (Math.PI / 180);
-      const absCos = Math.abs(Math.cos(rad));
-      const absSin = Math.abs(Math.sin(rad));
-      
-      canvas.width = Math.round(img.naturalWidth * absCos + img.naturalHeight * absSin);
-      canvas.height = Math.round(img.naturalWidth * absSin + img.naturalHeight * absCos);
-
-      if (backgroundRemoved && backgroundColor.startsWith("#")) {
-        ctx.fillStyle = backgroundColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-      
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate(rad);
-      if (flip) {
-        ctx.scale(-1, 1);
-      }
-
-      // Apply CSS-like filters
-      let filterString = '';
-      if (brightness !== 100) filterString += `brightness(${brightness}%) `;
-      if (contrast !== 100) filterString += `contrast(${contrast}%) `;
-      if (saturation !== 100) filterString += `saturate(${saturation}%) `;
-      if (temperature !== 0) {
-        if (temperature > 0) {
-          filterString += `sepia(${temperature / 2}%) hue-rotate(-15deg) saturate(120%) `;
-        } else {
-          // No direct CSS filter for cooling, this is a creative approximation
-          filterString += `hue-rotate(${Math.abs(temperature)}deg) saturate(90%) `;
-        }
-      }
-
-      // More complex filter logic for highlights and shadows
-      if (highlights !== 0 || shadows !== 0) {
-          // This is a simplified version. A true implementation would require pixel manipulation.
-          // For simplicity, we apply a second brightness filter layer for highlights/shadows.
-          // A more advanced solution would iterate over imageData.
-          if (highlights > 0) filterString += `brightness(${100 + highlights / 2}%) contrast(${100 + highlights/4}%) `;
-          if (highlights < 0) filterString += `brightness(${100 + highlights / 2}%) contrast(${100 + highlights/4}%) `;
-          if (shadows > 0) filterString += `brightness(${100 + shadows / 2}%) contrast(${100 - shadows/4}%) `;
-          if (shadows < 0) filterString += `brightness(${100 + shadows / 2}%) contrast(${100 - shadows/4}%) `;
-      }
-      
-      ctx.filter = filterString.trim();
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-      
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = "ai-photo-ace-edit.png";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
+    const canvas = document.getElementById('image-canvas') as HTMLCanvasElement;
+    if (!canvas) {
       toast({
-        title: "Image downloaded!",
-        description: "Your masterpiece is saved.",
+        variant: "destructive",
+        title: "Error",
+        description: "Could not find the image canvas.",
       });
-    };
-    img.crossOrigin = "anonymous";
-    img.src = image;
+      return;
+    }
+    
+    const finalCanvas = document.createElement('canvas');
+    const finalCtx = finalCanvas.getContext('2d');
+    if (!finalCtx) return;
+    
+    finalCanvas.width = canvas.width;
+    finalCanvas.height = canvas.height;
+    
+    const { backgroundRemoved, backgroundColor } = editingState;
+    
+    if (backgroundRemoved && backgroundColor.startsWith("#")) {
+        finalCtx.fillStyle = backgroundColor;
+        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+    }
+
+    finalCtx.drawImage(canvas, 0, 0);
+    
+    const link = document.createElement("a");
+    link.href = finalCanvas.toDataURL("image/png");
+    link.download = "ai-photo-ace-edit.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Image downloaded!",
+      description: "Your masterpiece is saved.",
+    });
   };
   
   const handlePrintExport = (paperSize: '4x6' | '5x7') => {
     if (!image) return;
     setIsLoading(true);
     setLoadingMessage('Creating print layout...');
+
+    const sourceCanvas = document.getElementById('image-canvas') as HTMLCanvasElement;
+     if (!sourceCanvas) {
+      setIsLoading(false);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not find image canvas.' });
+      return;
+    }
+
 
     const DPI = 300;
     const paperDimensions = {
@@ -350,86 +314,81 @@ export default function Home() {
 
     const { width: paperWidth, height: paperHeight } = paperDimensions[paperSize];
     
-    const img = new (window.Image as any)();
-    img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = paperWidth;
-        canvas.height = paperHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            setIsLoading(false);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not create canvas.' });
-            return;
-        }
-
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        const photoCanvas = document.createElement("canvas");
-        const photoWithBorderWidth = img.naturalWidth + 2 * BORDER_WIDTH;
-        const photoWithBorderHeight = img.naturalHeight + 2 * BORDER_WIDTH;
-        photoCanvas.width = photoWithBorderWidth;
-        photoCanvas.height = photoWithBorderHeight;
-        
-        const photoCtx = photoCanvas.getContext("2d");
-        if (!photoCtx) return;
-
-        // Draw border
-        photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
-        photoCtx.lineWidth = BORDER_WIDTH * 2; // multiply by 2 because stroke is centered
-        photoCtx.strokeRect(BORDER_WIDTH, BORDER_WIDTH, img.naturalWidth, img.naturalHeight);
-
-        // Composite background color if needed
-        if (editingState.backgroundRemoved && editingState.backgroundColor.startsWith("#")) {
-            photoCtx.fillStyle = editingState.backgroundColor;
-            photoCtx.fillRect(BORDER_WIDTH, BORDER_WIDTH, img.naturalWidth, img.naturalHeight);
-        }
-        
-        // Draw image over the background and border
-        photoCtx.drawImage(img, BORDER_WIDTH, BORDER_WIDTH);
-
-
-        if (photoWithBorderWidth === 0 || photoWithBorderHeight === 0) {
-            setIsLoading(false);
-            toast({ variant: 'destructive', title: 'Image has no size', description: 'Cannot process an image with zero width or height.' });
-            return;
-        }
-        
-        const effectivePhotoWidth = photoWithBorderWidth + CUTTING_MARGIN;
-        const effectivePhotoHeight = photoWithBorderHeight + CUTTING_MARGIN;
-        
-        const cols = Math.floor(paperWidth / effectivePhotoWidth);
-        const rows = Math.floor(paperHeight / effectivePhotoHeight);
-
-        if (cols === 0 || rows === 0) {
-            setIsLoading(false);
-            toast({ variant: 'destructive', title: 'Image too large', description: 'The image is too large to fit on the selected paper size. Please resize it first.' });
-            return;
-        }
-
-        const totalWidth = cols * effectivePhotoWidth - CUTTING_MARGIN;
-        const totalHeight = rows * effectivePhotoHeight - CUTTING_MARGIN;
-        const offsetX = (paperWidth - totalWidth) / 2;
-        const offsetY = (paperHeight - totalHeight) / 2;
-
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
-                ctx.drawImage(photoCanvas, offsetX + col * effectivePhotoWidth, offsetY + row * effectivePhotoHeight);
-            }
-        }
-
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `ai-photo-ace-print-${paperSize}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
+    const printCanvas = document.createElement('canvas');
+    printCanvas.width = paperWidth;
+    printCanvas.height = paperHeight;
+    const ctx = printCanvas.getContext('2d');
+    if (!ctx) {
         setIsLoading(false);
-        toast({ title: 'Print layout created!', description: `Your ${paperSize} image is ready.` });
-    };
-    img.crossOrigin = "anonymous";
-    img.src = image;
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not create canvas.' });
+        return;
+    }
+
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, printCanvas.width, printCanvas.height);
+    
+    const photoWithBorderWidth = sourceCanvas.width + 2 * BORDER_WIDTH;
+    const photoWithBorderHeight = sourceCanvas.height + 2 * BORDER_WIDTH;
+    
+    const photoCanvas = document.createElement("canvas");
+    photoCanvas.width = photoWithBorderWidth;
+    photoCanvas.height = photoWithBorderHeight;
+    const photoCtx = photoCanvas.getContext("2d");
+    if (!photoCtx) return;
+
+    // Draw border
+    photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
+    photoCtx.lineWidth = BORDER_WIDTH * 2;
+    photoCtx.strokeRect(BORDER_WIDTH, BORDER_WIDTH, sourceCanvas.width, sourceCanvas.height);
+
+    // Composite background color if needed
+    if (editingState.backgroundRemoved && editingState.backgroundColor.startsWith("#")) {
+        photoCtx.fillStyle = editingState.backgroundColor;
+        photoCtx.fillRect(BORDER_WIDTH, BORDER_WIDTH, sourceCanvas.width, sourceCanvas.height);
+    }
+    
+    // Draw image over the background and border
+    photoCtx.drawImage(sourceCanvas, BORDER_WIDTH, BORDER_WIDTH);
+
+
+    if (photoWithBorderWidth === 0 || photoWithBorderHeight === 0) {
+        setIsLoading(false);
+        toast({ variant: 'destructive', title: 'Image has no size', description: 'Cannot process an image with zero width or height.' });
+        return;
+    }
+    
+    const effectivePhotoWidth = photoWithBorderWidth + CUTTING_MARGIN;
+    const effectivePhotoHeight = photoWithBorderHeight + CUTTING_MARGIN;
+    
+    const cols = Math.floor(paperWidth / effectivePhotoWidth);
+    const rows = Math.floor(paperHeight / effectivePhotoHeight);
+
+    if (cols === 0 || rows === 0) {
+        setIsLoading(false);
+        toast({ variant: 'destructive', title: 'Image too large', description: 'The image is too large to fit on the selected paper size. Please resize it first.' });
+        return;
+    }
+
+    const totalWidth = cols * effectivePhotoWidth - CUTTING_MARGIN;
+    const totalHeight = rows * effectivePhotoHeight - CUTTING_MARGIN;
+    const offsetX = (paperWidth - totalWidth) / 2;
+    const offsetY = (paperHeight - totalHeight) / 2;
+
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            ctx.drawImage(photoCanvas, offsetX + col * effectivePhotoWidth, offsetY + row * effectivePhotoHeight);
+        }
+    }
+
+    const link = document.createElement('a');
+    link.href = printCanvas.toDataURL('image/png');
+    link.download = `ai-photo-ace-print-${paperSize}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setIsLoading(false);
+    toast({ title: 'Print layout created!', description: `Your ${paperSize} image is ready.` });
   };
 
   const handleCropPreset = (aspectRatio?: number) => {
@@ -524,7 +483,6 @@ export default function Home() {
         <div className="flex flex-col bg-muted/30 dark:bg-black/20 p-4 md:p-8 overflow-auto">
            <ImageWorkspace
             image={image}
-            originalImage={originalImage}
             onImageUpload={handleImageUpload}
             isLoading={isLoading}
             loadingMessage={loadingMessage}
@@ -543,3 +501,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

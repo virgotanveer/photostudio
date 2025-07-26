@@ -36,11 +36,7 @@ import {
   Trash2,
   Printer,
   Scissors,
-  Sun,
-  Contrast,
   Palette,
-  Thermometer,
-  Eye,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useToast } from "@/hooks/use-toast";
@@ -246,28 +242,28 @@ export function EditorSidebar({
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-2">
               <div className="space-y-2">
-                <Label className="flex justify-between"><span>Brightness</span><span className="text-muted-foreground">{editingState.brightness}%</span></Label>
-                <Slider value={[editingState.brightness]} onValueChange={(v) => handleColorAdjustment('brightness', v[0])} min={0} max={200} step={1} disabled={isDisabled} />
+                <Label className="flex justify-between"><span>Brightness</span><span className="text-muted-foreground">{editingState.brightness.toFixed(0)}</span></Label>
+                <Slider value={[editingState.brightness]} onValueChange={(v) => handleColorAdjustment('brightness', v[0])} min={-100} max={100} step={1} disabled={isDisabled} />
               </div>
               <div className="space-y-2">
-                <Label className="flex justify-between"><span>Contrast</span><span className="text-muted-foreground">{editingState.contrast}%</span></Label>
-                <Slider value={[editingState.contrast]} onValueChange={(v) => handleColorAdjustment('contrast', v[0])} min={0} max={200} step={1} disabled={isDisabled} />
+                <Label className="flex justify-between"><span>Contrast</span><span className="text-muted-foreground">{editingState.contrast.toFixed(0)}</span></Label>
+                <Slider value={[editingState.contrast]} onValueChange={(v) => handleColorAdjustment('contrast', v[0])} min={-100} max={100} step={1} disabled={isDisabled} />
               </div>
               <div className="space-y-2">
-                <Label className="flex justify-between"><span>Saturation</span><span className="text-muted-foreground">{editingState.saturation}%</span></Label>
-                <Slider value={[editingState.saturation]} onValueChange={(v) => handleColorAdjustment('saturation', v[0])} min={0} max={200} step={1} disabled={isDisabled} />
+                <Label className="flex justify-between"><span>Saturation</span><span className="text-muted-foreground">{editingState.saturation.toFixed(0)}</span></Label>
+                <Slider value={[editingState.saturation]} onValueChange={(v) => handleColorAdjustment('saturation', v[0])} min={-100} max={100} step={1} disabled={isDisabled} />
               </div>
               <div className="space-y-2">
-                <Label className="flex justify-between"><span>Temperature</span><span className="text-muted-foreground">{editingState.temperature}</span></Label>
-                <Slider value={[editingState.temperature]} onValueChange={(v) => handleColorAdjustment('temperature', v[0])} min={-50} max={50} step={1} disabled={isDisabled} />
+                <Label className="flex justify-between"><span>Temperature</span><span className="text-muted-foreground">{editingState.temperature.toFixed(0)}</span></Label>
+                <Slider value={[editingState.temperature]} onValueChange={(v) => handleColorAdjustment('temperature', v[0])} min={-100} max={100} step={1} disabled={isDisabled} />
               </div>
               <div className="space-y-2">
-                <Label className="flex justify-between"><span>Highlights</span><span className="text-muted-foreground">{editingState.highlights}</span></Label>
-                <Slider value={[editingState.highlights]} onValueChange={(v) => handleColorAdjustment('highlights', v[0])} min={-50} max={50} step={1} disabled={isDisabled} />
+                <Label className="flex justify-between"><span>Highlights</span><span className="text-muted-foreground">{editingState.highlights.toFixed(0)}</span></Label>
+                <Slider value={[editingState.highlights]} onValueChange={(v) => handleColorAdjustment('highlights', v[0])} min={-100} max={100} step={1} disabled={isDisabled} />
               </div>
               <div className="space-y-2">
-                <Label className="flex justify-between"><span>Shadows</span><span className="text-muted-foreground">{editingState.shadows}</span></Label>
-                <Slider value={[editingState.shadows]} onValueChange={(v) => handleColorAdjustment('shadows', v[0])} min={-50} max={50} step={1} disabled={isDisabled} />
+                <Label className="flex justify-between"><span>Shadows</span><span className="text-muted-foreground">{editingState.shadows.toFixed(0)}</span></Label>
+                <Slider value={[editingState.shadows]} onValueChange={(v) => handleColorAdjustment('shadows', v[0])} min={-100} max={100} step={1} disabled={isDisabled} />
               </div>
             </AccordionContent>
           </AccordionItem>
