@@ -35,9 +35,9 @@ export async function cropImage(input: CropImageInput): Promise<CropImageOutput>
   return cropImageFlow(input);
 }
 
-// Although this doesn't use a generative model, we define it as a flow
-// to keep the architecture consistent and allow for future AI enhancements,
-// such as smart cropping (e.g., face detection).
+// Note: Using a generative model for precise cropping is unreliable.
+// The actual cropping logic should be handled client-side for deterministic results.
+// This flow now acts as a placeholder and can be replaced with a client-side implementation.
 const cropImageFlow = ai.defineFlow(
   {
     name: 'cropImageFlow',
@@ -50,7 +50,7 @@ const cropImageFlow = ai.defineFlow(
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: [
         {
-          text: `You are an AI-powered photo editor. You will receive an image. Your task is to perform a center crop on the image to the exact dimensions of ${targetWidth}px width and ${targetHeight}px height. Do not change the content of the image other than cropping it. The output image must have the exact dimensions specified. Return only the cropped image.`,
+          text: `You are an AI-powered photo editor. You will receive an image. Your task is to perform a center crop on the image to the exact dimensions of ${targetWidth}px width and ${targetHeight}px height. Do not change the content of the image other than cropping it. The output image must have the exact dimensions specified. Return only the cropped image. Do not add any padding or whitespace around the image.`,
         },
         {
           media: {

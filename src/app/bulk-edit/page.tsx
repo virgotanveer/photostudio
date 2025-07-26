@@ -15,6 +15,8 @@ import { Progress } from "@/components/ui/progress";
 import { UploadCloud, CheckCircle2, XCircle, FileImage, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { removeBackground } from "@/ai/flows/remove-background";
+// Note: We are moving away from AI crop for reliability. The flow is now a passthrough.
+// The actual cropping will be done client-side.
 import { cropImage } from "@/ai/flows/crop-image";
 import Link from 'next/link';
 
@@ -47,9 +49,9 @@ export default function BulkEditPage() {
   const [isProcessing, setIsProcessing] = React.useState(false);
   
   // Editing Options
-  const [shouldRemoveBackground, setShouldRemoveBackground] = React.useState(false);
-  const [backgroundColor, setBackgroundColor] = React.useState("transparent");
-  const [shouldCrop, setShouldCrop] = React.useState(false);
+  const [shouldRemoveBackground, setShouldRemoveBackground] = React.useState(true);
+  const [backgroundColor, setBackgroundColor] = React.useState("#ffffff");
+  const [shouldCrop, setShouldCrop] = React.useState(true);
   const [cropSettings, setCropSettings] = React.useState<CropSettings>({
     preset: "35x45mm",
     width: 35,
@@ -80,6 +82,41 @@ export default function BulkEditPage() {
     handleFileSelect(e.dataTransfer.files);
   };
   
+  const getPixelsFromUnits = (value: number, unit: "mm" | "in" | "cm" | "px", dpi: number): number => {
+      switch (unit) {
+        case 'in': return value * dpi;
+        case 'cm': return (value / 2.54) * dpi;
+        case 'mm': return (value / 25.4) * dpi;
+        case 'px':
+        default: return value;
+      }
+  };
+
+  const centerCrop = (sourceImage: HTMLImageElement, targetWidth: number, targetHeight: number): Promise<string> => {
+      return new Promise(resolve => {
+          const targetAspectRatio = targetWidth / targetHeight;
+          const sourceAspectRatio = sourceImage.naturalWidth / sourceImage.naturalHeight;
+
+          let sx = 0, sy = 0, sWidth = sourceImage.naturalWidth, sHeight = sourceImage.naturalHeight;
+
+          if (sourceAspectRatio > targetAspectRatio) {
+              sWidth = sourceImage.naturalHeight * targetAspectRatio;
+              sx = (sourceImage.naturalWidth - sWidth) / 2;
+          } else {
+              sHeight = sourceImage.naturalWidth / targetAspectRatio;
+              sy = (sourceImage.naturalHeight - sHeight) / 2;
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+          ctx.drawImage(sourceImage, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
+          resolve(canvas.toDataURL('image/png'));
+      });
+  };
+
   const handleProcessImages = async () => {
     if (imageFiles.length === 0) {
       toast({ variant: 'destructive', title: 'No images selected', description: 'Please upload images to process.' });
@@ -114,26 +151,16 @@ export default function BulkEditPage() {
                   : CROP_PRESETS[cropSettings.preset];
 
               const DPI = 300;
-              let targetWidth = width;
-              let targetHeight = height;
+              const targetWidth = Math.round(getPixelsFromUnits(width, unit, DPI));
+              const targetHeight = Math.round(getPixelsFromUnits(height, unit, DPI));
 
-              if (unit === 'in') {
-                targetWidth = width * DPI;
-                targetHeight = height * DPI;
-              } else if (unit === 'cm') {
-                targetWidth = (width / 2.54) * DPI;
-                targetHeight = (height / 2.54) * DPI;
-              } else if (unit === 'mm') {
-                targetWidth = (width / 25.4) * DPI;
-                targetHeight = (height / 25.4) * DPI;
-              }
-              
-              const result = await cropImage({ 
-                photoDataUri: dataUri,
-                targetWidth: Math.round(targetWidth),
-                targetHeight: Math.round(targetHeight)
+              const imageForCropping = new Image();
+              await new Promise(resolve => {
+                  imageForCropping.onload = resolve;
+                  imageForCropping.src = dataUri;
               });
-              dataUri = result.croppedPhotoDataUri;
+
+              dataUri = await centerCrop(imageForCropping, targetWidth, targetHeight);
             }
 
             updatedFiles[i] = { ...updatedFiles[i], status: 'success', processedUri: dataUri };
@@ -156,31 +183,67 @@ export default function BulkEditPage() {
         return;
     }
 
-    // Common properties for print layout
     const DPI = 300;
     const paperDimensions = {
       '4x6': { width: 6 * DPI, height: 4 * DPI },
       '5x7': { width: 7 * DPI, height: 5 * DPI },
     };
-    const BORDER_WIDTH = 1; // 1px border
-    const CUTTING_MARGIN = 25; // 25px margin
     const { width: paperWidth, height: paperHeight } = paperDimensions[paperSize];
+    const CUTTING_MARGIN_MM = 2;
+    const CUTTING_MARGIN_PX = Math.round(getPixelsFromUnits(CUTTING_MARGIN_MM, 'mm', DPI));
+    const BORDER_PX = Math.round(getPixelsFromUnits(0.2, 'mm', DPI));
+
 
     for (const imageFile of successfulImages) {
+        if (!imageFile.processedUri) continue;
+
         const img = new Image();
-        img.src = imageFile.processedUri!;
-        
         await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = reject;
+            img.onload = () => resolve();
+            img.onerror = reject;
+            img.src = imageFile.processedUri!;
         });
 
-        const sourceCanvas = document.createElement('canvas');
-        sourceCanvas.width = img.naturalWidth;
-        sourceCanvas.height = img.naturalHeight;
-        const sourceCtx = sourceCanvas.getContext('2d');
-        if (!sourceCtx) continue;
-        sourceCtx.drawImage(img, 0, 0);
+        const photoWidth = img.naturalWidth;
+        const photoHeight = img.naturalHeight;
+
+        if (photoWidth === 0 || photoHeight === 0) {
+            toast({ variant: 'destructive', title: 'Image has no size', description: `Cannot process ${imageFile.file.name} as it has zero width or height.` });
+            continue;
+        }
+
+        // --- Create a single photo "stamp" with background and border ---
+        const stampCanvas = document.createElement("canvas");
+        const stampCtx = stampCanvas.getContext("2d");
+        if (!stampCtx) continue;
+        
+        stampCanvas.width = photoWidth + BORDER_PX * 2;
+        stampCanvas.height = photoHeight + BORDER_PX * 2;
+
+        if (backgroundColor !== 'transparent') {
+            stampCtx.fillStyle = backgroundColor;
+            stampCtx.fillRect(0, 0, stampCanvas.width, stampCanvas.height);
+        }
+        stampCtx.drawImage(img, BORDER_PX, BORDER_PX);
+
+        if (BORDER_PX > 0) {
+            stampCtx.strokeStyle = 'rgba(200, 200, 200, 0.7)';
+            stampCtx.lineWidth = BORDER_PX;
+            stampCtx.strokeRect(BORDER_PX / 2, BORDER_PX / 2, stampCanvas.width - BORDER_PX, stampCanvas.height - BORDER_PX);
+        }
+        // --- End Stamp Creation ---
+
+
+        const effectivePhotoWidth = stampCanvas.width + CUTTING_MARGIN_PX;
+        const effectivePhotoHeight = stampCanvas.height + CUTTING_MARGIN_PX;
+
+        const cols = Math.floor(paperWidth / effectivePhotoWidth);
+        const rows = Math.floor(paperHeight / effectivePhotoHeight);
+        
+        if (cols === 0 || rows === 0) {
+            toast({ variant: 'destructive', title: 'Image too large', description: `${imageFile.file.name} is too large to fit on the selected paper size.` });
+            continue;
+        }
 
         const printCanvas = document.createElement('canvas');
         printCanvas.width = paperWidth;
@@ -191,53 +254,19 @@ export default function BulkEditPage() {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, printCanvas.width, printCanvas.height);
         
-        const photoWithBorderWidth = sourceCanvas.width + 2 * BORDER_WIDTH;
-        const photoWithBorderHeight = sourceCanvas.height + 2 * BORDER_WIDTH;
+        const totalGridWidth = cols * effectivePhotoWidth - CUTTING_MARGIN_PX;
+        const totalGridHeight = rows * effectivePhotoHeight - CUTTING_MARGIN_PX;
         
-        const photoCanvas = document.createElement("canvas");
-        photoCanvas.width = photoWithBorderWidth;
-        photoCanvas.height = photoWithBorderHeight;
-        const photoCtx = photoCanvas.getContext("2d");
-        if (!photoCtx) continue;
-
-        // Composite background color if needed
-        if (backgroundColor !== 'transparent') {
-            photoCtx.fillStyle = backgroundColor;
-            photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
-        }
-        
-        // Draw image over the background
-        photoCtx.drawImage(sourceCanvas, BORDER_WIDTH, BORDER_WIDTH);
-
-        // Draw border
-        photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
-        photoCtx.lineWidth = BORDER_WIDTH;
-        photoCtx.strokeRect(BORDER_WIDTH / 2, BORDER_WIDTH / 2, sourceCanvas.width + BORDER_WIDTH, sourceCanvas.height + BORDER_WIDTH);
-
-        if (photoWithBorderWidth === 0 || photoWithBorderHeight === 0) {
-            toast({ variant: 'destructive', title: 'Image has no size', description: `Cannot process ${imageFile.file.name} as it has zero width or height.` });
-            continue;
-        }
-        
-        const effectivePhotoWidth = photoWithBorderWidth + CUTTING_MARGIN;
-        const effectivePhotoHeight = photoWithBorderHeight + CUTTING_MARGIN;
-        
-        const cols = Math.floor((paperWidth - CUTTING_MARGIN) / effectivePhotoWidth);
-        const rows = Math.floor((paperHeight - CUTTING_MARGIN) / effectivePhotoHeight);
-
-        if (cols === 0 || rows === 0) {
-            toast({ variant: 'destructive', title: 'Image too large', description: `${imageFile.file.name} is too large to fit on the selected paper size.` });
-            continue;
-        }
-
-        const totalWidth = cols * effectivePhotoWidth - CUTTING_MARGIN;
-        const totalHeight = rows * effectivePhotoHeight - CUTTING_MARGIN;
-        const offsetX = (paperWidth - totalWidth) / 2;
-        const offsetY = (paperHeight - totalHeight) / 2;
+        const startX = (paperWidth - totalGridWidth) / 2;
+        const startY = (paperHeight - totalGridHeight) / 2;
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
-                ctx.drawImage(photoCanvas, offsetX + col * effectivePhotoWidth, offsetY + row * effectivePhotoHeight);
+                ctx.drawImage(
+                    stampCanvas,
+                    startX + col * effectivePhotoWidth,
+                    startY + row * effectivePhotoHeight
+                );
             }
         }
 
