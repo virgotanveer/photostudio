@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
@@ -48,6 +49,7 @@ interface EditorSidebarProps {
   setEditingState: Dispatch<SetStateAction<EditingState>>;
   editingState: EditingState;
   onReset: () => void;
+  onRotate: () => void;
   onCropPreset: (aspectRatio?: number) => void;
   onResizeAndCrop: (width: number, height: number, unit: string) => void;
   onPrintExport: (paperSize: '4x6' | '5x7') => void;
@@ -67,6 +69,7 @@ export function EditorSidebar({
   setEditingState,
   editingState,
   onReset,
+  onRotate,
   onCropPreset,
   onResizeAndCrop,
   onPrintExport,
@@ -97,10 +100,6 @@ export function EditorSidebar({
     setPrompt(templatePrompt);
     onGenerateBackground(templatePrompt);
   }
-
-  const handleRotate = () => {
-    setEditingState(prev => ({ ...prev, rotation: (prev.rotation + 90) % 360 }));
-  };
 
   const handleFlip = () => {
     setEditingState(prev => ({ ...prev, flip: !prev.flip }));
@@ -294,7 +293,7 @@ export function EditorSidebar({
               </div>
               <Separator />
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={handleRotate} disabled={isDisabled}><RotateCcw className="mr-2 h-4 w-4" /> Rotate</Button>
+                <Button variant="outline" onClick={onRotate} disabled={isDisabled}><RotateCcw className="mr-2 h-4 w-4" /> Rotate</Button>
                 <Button variant="outline" onClick={handleFlip} disabled={isDisabled}><FlipHorizontal className="mr-2 h-4 w-4" /> Flip</Button>
               </div>
             </AccordionContent>

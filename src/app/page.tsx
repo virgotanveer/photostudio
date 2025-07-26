@@ -257,8 +257,14 @@ export default function Home() {
     const img = new (window.Image as any)();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
+      
+      const rad = editingState.rotation * (Math.PI / 180);
+      const absCos = Math.abs(Math.cos(rad));
+      const absSin = Math.abs(Math.sin(rad));
+      
+      canvas.width = Math.round(img.naturalWidth * absCos + img.naturalHeight * absSin);
+      canvas.height = Math.round(img.naturalWidth * absSin + img.naturalHeight * absCos);
+      
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       
@@ -267,7 +273,9 @@ export default function Home() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
       
-      ctx.drawImage(img, 0, 0);
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
 
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
@@ -411,17 +419,22 @@ export default function Home() {
     setIsCropping(true);
   };
   
-  const handleCropComplete = (croppedImage: string) => {
+  const handleCropComplete = (croppedImage: string, rotation: number) => {
     setImage(croppedImage);
     setOriginalImage(croppedImage); // Set the new cropped/resized image as the base
+    setEditingState(prev => ({...prev, rotation: prev.rotation + rotation, flip: false}));
     setIsCropping(false);
     setOutputWidth(undefined);
     setOutputHeight(undefined);
     setCropAspectRatio(undefined);
     toast({
       title: "Success",
-      description: "Image has been resized and cropped.",
+      description: "Image has been updated.",
     });
+  };
+
+  const handleRotate90 = () => {
+    setEditingState(prev => ({ ...prev, rotation: (prev.rotation + 90) % 360 }));
   };
 
   if (isCropping && image) {
@@ -438,6 +451,7 @@ export default function Home() {
           setOutputHeight(undefined);
           setCropAspectRatio(undefined);
         }}
+        initialRotation={editingState.rotation}
       />
     );
   }
@@ -455,6 +469,7 @@ export default function Home() {
           setEditingState={setEditingState}
           editingState={editingState}
           onReset={handleReset}
+          onRotate={handleRotate90}
           onCropPreset={handleCropPreset}
           onResizeAndCrop={handleResizeAndCrop}
           onPrintExport={handlePrintExport}
@@ -486,5 +501,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
