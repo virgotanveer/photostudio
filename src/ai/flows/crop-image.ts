@@ -60,10 +60,6 @@ const cropImageFlow = ai.defineFlow(
       ],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
-        targetSize: {
-          width: targetWidth,
-          height: targetHeight,
-        }
       },
     });
 
