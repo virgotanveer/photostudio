@@ -37,6 +37,7 @@ import {
   Printer,
   Scissors,
   Palette,
+  Wand2,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +45,7 @@ import { Slider } from "./ui/slider";
 
 interface EditorSidebarProps {
   onFaceEnhance: () => void;
+  onRemoveBlemishes: () => void;
   onGenerateBackground: (prompt: string) => void;
   onUpscaleImage: () => void;
   onCorrectColor: () => void;
@@ -64,6 +66,7 @@ interface EditorSidebarProps {
 
 export function EditorSidebar({
   onFaceEnhance,
+  onRemoveBlemishes,
   onGenerateBackground,
   onUpscaleImage,
   onCorrectColor,
@@ -278,6 +281,9 @@ export function EditorSidebar({
               <Button onClick={onFaceEnhance} className="w-full" variant="outline" disabled={isDisabled}>
                 <Circle className="mr-2 h-4 w-4" /> AI Enhance Face
               </Button>
+               <Button variant="outline" className="w-full" onClick={onRemoveBlemishes} disabled={isDisabled}>
+                <Wand2 className="mr-2 h-4 w-4" /> Remove Blemishes
+              </Button>
                <Button variant="outline" className="w-full" onClick={onUpscaleImage} disabled={isDisabled}>
                 <Maximize className="mr-2 h-4 w-4" /> AI Upscale Image
               </Button>
@@ -373,5 +379,3 @@ export function EditorSidebar({
     </aside>
   );
 }
-
-    

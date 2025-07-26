@@ -7,6 +7,7 @@ import { generateBackground } from "@/ai/flows/generate-background";
 import { upscaleImage } from "@/ai/flows/upscale-image";
 import { correctColor } from "@/ai/flows/correct-color";
 import { removeBackground } from "@/ai/flows/remove-background";
+import { removeBlemishes } from "@/ai/flows/remove-blemishes";
 import { useToast } from "@/hooks/use-toast";
 import { AppHeader } from "@/components/app-header";
 import { EditorSidebar } from "@/components/editor-sidebar";
@@ -125,6 +126,29 @@ export default function Home() {
         variant: "destructive",
         title: "Error",
         description: "Failed to enhance face.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleRemoveBlemishes = async () => {
+    if (!image) return;
+    setIsLoading(true);
+    setLoadingMessage("Removing blemishes...");
+    try {
+      const result = await removeBlemishes({ photoDataUri: image });
+      setImage(result.retouchedPhotoDataUri);
+      toast({
+        title: "Success",
+        description: "Blemishes and wrinkles removed.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove blemishes.",
       });
     } finally {
       setIsLoading(false);
@@ -463,6 +487,7 @@ export default function Home() {
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-[350px_1fr] overflow-hidden">
         <EditorSidebar
           onFaceEnhance={handleFaceEnhance}
+          onRemoveBlemishes={handleRemoveBlemishes}
           onGenerateBackground={handleGenerateBackground}
           onUpscaleImage={handleUpscaleImage}
           onCorrectColor={handleCorrectColor}
@@ -501,5 +526,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
