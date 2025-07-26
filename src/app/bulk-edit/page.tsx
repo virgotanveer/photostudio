@@ -212,7 +212,7 @@ export default function BulkEditPage() {
         // Draw border
         photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
         photoCtx.lineWidth = BORDER_WIDTH;
-        photoCtx.strokeRect(BORDER_WIDTH / 2, BORDER_WIDTH / 2, sourceCanvas.width, sourceCanvas.height);
+        photoCtx.strokeRect(BORDER_WIDTH / 2, BORDER_WIDTH / 2, sourceCanvas.width + BORDER_WIDTH, sourceCanvas.height + BORDER_WIDTH);
 
         if (photoWithBorderWidth === 0 || photoWithBorderHeight === 0) {
             toast({ variant: 'destructive', title: 'Image has no size', description: `Cannot process ${imageFile.file.name} as it has zero width or height.` });
