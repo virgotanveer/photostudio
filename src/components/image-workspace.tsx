@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -68,9 +69,25 @@ export function ImageWorkspace({
         backgroundSize: "20px 20px",
         backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
       };
+      
+  const {
+    rotation,
+    flip,
+    brightness,
+    contrast,
+    saturation,
+    temperature,
+    highlights,
+    shadows,
+  } = editingState;
+
+  // This is a simplified mapping from temperature/highlights/shadows to CSS filters.
+  // A more advanced implementation might use a canvas for pixel-level manipulation.
+  const tempFilter = temperature > 0 ? `sepia(${temperature / 2}%) hue-rotate(-15deg)` : `hue-rotate(${Math.abs(temperature)}deg) saturate(90%)`;
 
   const imageStyle: React.CSSProperties = {
-    transform: `rotate(${editingState.rotation}deg) scaleX(${editingState.flip ? -1 : 1})`,
+    transform: `rotate(${rotation}deg) scaleX(${flip ? -1 : 1})`,
+    filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) drop-shadow(0 0 ${Math.abs(shadows/5)}px rgba(0,0,0,${Math.max(0, -shadows/50)})) drop-shadow(0 0 ${Math.abs(highlights/5)}px rgba(255,255,255,${Math.max(0, highlights/50)})) ${temperature !== 0 ? tempFilter : ''}`,
     imageRendering: 'pixelated'
   }
 
@@ -99,13 +116,14 @@ export function ImageWorkspace({
             className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-lg"
             style={backgroundStyle}
           >
-             <div className={cn("relative transition-transform duration-300 ease-in-out")} style={imageStyle}>
+             <div className={cn("relative transition-transform duration-300 ease-in-out")}>
                  <Image
                     src={image}
                     alt="Edited photo"
                     width={800}
                     height={800}
                     className="object-contain max-w-full max-h-full"
+                    style={imageStyle}
                 />
             </div>
           </div>
@@ -146,3 +164,5 @@ export function ImageWorkspace({
     </div>
   );
 }
+
+    

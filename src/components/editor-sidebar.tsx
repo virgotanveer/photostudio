@@ -36,9 +36,15 @@ import {
   Trash2,
   Printer,
   Scissors,
+  Sun,
+  Contrast,
+  Palette,
+  Thermometer,
+  Eye,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { Slider } from "./ui/slider";
 
 interface EditorSidebarProps {
   onFaceEnhance: () => void;
@@ -138,11 +144,15 @@ export function EditorSidebar({
     setNewColor("#000000");
   };
 
+  const handleColorAdjustment = (key: keyof EditingState, value: number) => {
+    setEditingState(prev => ({...prev, [key]: value}));
+  };
+
   return (
     <aside className="border-r border-border/80 bg-card p-4 flex flex-col h-full overflow-y-auto">
       <div className="flex-1">
         <h2 className="text-2xl font-semibold mb-4 font-headline">Edit Tools</h2>
-        <Accordion type="multiple" defaultValue={["background", "enhance", "adjust", "print"]} className="w-full">
+        <Accordion type="multiple" defaultValue={["background", "enhance", "adjust", "colors", "print"]} className="w-full">
           <AccordionItem value="background">
             <AccordionTrigger className="text-lg font-headline">
               <div className="flex items-center gap-3">
@@ -225,6 +235,40 @@ export function EditorSidebar({
                     <Button variant="outline" size="sm" onClick={() => handleBackgroundTemplate("Abstract geometric patterns, pastel colors")} disabled={isDisabled}>Abstract</Button>
                  </div>
                </div>
+            </AccordionContent>
+          </AccordionItem>
+          
+          <AccordionItem value="colors">
+            <AccordionTrigger className="text-lg font-headline">
+              <div className="flex items-center gap-3">
+                <Palette className="h-5 w-5" /> Color Adjustments
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label className="flex justify-between"><span>Brightness</span><span className="text-muted-foreground">{editingState.brightness}%</span></Label>
+                <Slider value={[editingState.brightness]} onValueChange={(v) => handleColorAdjustment('brightness', v[0])} min={0} max={200} step={1} disabled={isDisabled} />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex justify-between"><span>Contrast</span><span className="text-muted-foreground">{editingState.contrast}%</span></Label>
+                <Slider value={[editingState.contrast]} onValueChange={(v) => handleColorAdjustment('contrast', v[0])} min={0} max={200} step={1} disabled={isDisabled} />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex justify-between"><span>Saturation</span><span className="text-muted-foreground">{editingState.saturation}%</span></Label>
+                <Slider value={[editingState.saturation]} onValueChange={(v) => handleColorAdjustment('saturation', v[0])} min={0} max={200} step={1} disabled={isDisabled} />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex justify-between"><span>Temperature</span><span className="text-muted-foreground">{editingState.temperature}</span></Label>
+                <Slider value={[editingState.temperature]} onValueChange={(v) => handleColorAdjustment('temperature', v[0])} min={-50} max={50} step={1} disabled={isDisabled} />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex justify-between"><span>Highlights</span><span className="text-muted-foreground">{editingState.highlights}</span></Label>
+                <Slider value={[editingState.highlights]} onValueChange={(v) => handleColorAdjustment('highlights', v[0])} min={-50} max={50} step={1} disabled={isDisabled} />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex justify-between"><span>Shadows</span><span className="text-muted-foreground">{editingState.shadows}</span></Label>
+                <Slider value={[editingState.shadows]} onValueChange={(v) => handleColorAdjustment('shadows', v[0])} min={-50} max={50} step={1} disabled={isDisabled} />
+              </div>
             </AccordionContent>
           </AccordionItem>
 
@@ -333,3 +377,5 @@ export function EditorSidebar({
     </aside>
   );
 }
+
+    

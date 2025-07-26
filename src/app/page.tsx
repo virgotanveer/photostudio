@@ -28,6 +28,12 @@ export type EditingState = {
   faceEnhanced: boolean;
   rotation: number;
   flip: boolean;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  temperature: number;
+  highlights: number;
+  shadows: number;
 };
 
 export default function Home() {
@@ -41,14 +47,22 @@ export default function Home() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [loadingMessage, setLoadingMessage] = React.useState("");
   
-  const [editingState, setEditingState] = React.useState<EditingState>({
+  const initialEditingState: EditingState = {
     backgroundRemoved: false,
     backgroundPrompt: "",
     backgroundColor: "transparent",
     faceEnhanced: false,
     rotation: 0,
     flip: false,
-  });
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    temperature: 0,
+    highlights: 0,
+    shadows: 0,
+  };
+
+  const [editingState, setEditingState] = React.useState<EditingState>(initialEditingState);
 
   const [customColors, setCustomColors] = React.useState<CustomColor[]>([
     { id: uuidv4(), value: "#ffffff" },
@@ -88,14 +102,7 @@ export default function Home() {
       const dataUrl = e.target?.result as string;
       setImage(dataUrl);
       setOriginalImage(dataUrl);
-      setEditingState({
-        backgroundRemoved: false,
-        backgroundPrompt: "",
-        backgroundColor: "transparent",
-        faceEnhanced: false,
-        rotation: 0,
-        flip: false,
-      });
+      setEditingState(initialEditingState);
     };
     reader.readAsDataURL(file);
   };
@@ -240,14 +247,7 @@ export default function Home() {
   const handleReset = () => {
     if (originalImage) {
       setImage(originalImage);
-      setEditingState({
-        backgroundRemoved: false,
-        backgroundPrompt: "",
-        backgroundColor: "transparent",
-        faceEnhanced: false,
-        rotation: 0,
-        flip: false,
-      });
+      setEditingState(initialEditingState);
     }
   }
 
@@ -257,26 +257,66 @@ export default function Home() {
     const img = new (window.Image as any)();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      
-      const rad = editingState.rotation * (Math.PI / 180);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const {
+        brightness,
+        contrast,
+        saturation,
+        temperature,
+        highlights,
+        shadows,
+        rotation,
+        flip,
+        backgroundRemoved,
+        backgroundColor
+      } = editingState;
+
+      const rad = rotation * (Math.PI / 180);
       const absCos = Math.abs(Math.cos(rad));
       const absSin = Math.abs(Math.sin(rad));
       
       canvas.width = Math.round(img.naturalWidth * absCos + img.naturalHeight * absSin);
       canvas.height = Math.round(img.naturalWidth * absSin + img.naturalHeight * absCos);
-      
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      
-      if (editingState.backgroundRemoved && editingState.backgroundColor.startsWith("#")) {
-        ctx.fillStyle = editingState.backgroundColor;
+
+      if (backgroundRemoved && backgroundColor.startsWith("#")) {
+        ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
       
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate(rad);
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      if (flip) {
+        ctx.scale(-1, 1);
+      }
 
+      // Apply CSS-like filters
+      let filterString = '';
+      if (brightness !== 100) filterString += `brightness(${brightness}%) `;
+      if (contrast !== 100) filterString += `contrast(${contrast}%) `;
+      if (saturation !== 100) filterString += `saturate(${saturation}%) `;
+      if (temperature !== 0) {
+        if (temperature > 0) {
+          filterString += `sepia(${temperature / 2}%) hue-rotate(-15deg) saturate(120%) `;
+        } else {
+          // No direct CSS filter for cooling, this is a creative approximation
+          filterString += `hue-rotate(${Math.abs(temperature)}deg) saturate(90%) `;
+        }
+      }
+
+      // More complex filter logic for highlights and shadows
+      if (highlights !== 0 || shadows !== 0) {
+        // This is a simplified version. A true implementation would require pixel manipulation.
+        // For simplicity, we apply a second brightness filter layer for highlights/shadows.
+        // A more advanced solution would iterate over imageData.
+        if (highlights > 0) filterString += `brightness(${100 + highlights / 4}%) `;
+        if (shadows < 0) filterString += `brightness(${100 - Math.abs(shadows) / 4}%) contrast(${100 - Math.abs(shadows)/5}%)`;
+      }
+      
+      ctx.filter = filterString.trim();
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
       link.download = "ai-photo-ace-edit.png";
@@ -501,3 +541,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
