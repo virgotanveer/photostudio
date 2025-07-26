@@ -307,11 +307,13 @@ export default function Home() {
 
       // More complex filter logic for highlights and shadows
       if (highlights !== 0 || shadows !== 0) {
-        // This is a simplified version. A true implementation would require pixel manipulation.
-        // For simplicity, we apply a second brightness filter layer for highlights/shadows.
-        // A more advanced solution would iterate over imageData.
-        if (highlights > 0) filterString += `brightness(${100 + highlights / 4}%) `;
-        if (shadows < 0) filterString += `brightness(${100 - Math.abs(shadows) / 4}%) contrast(${100 - Math.abs(shadows)/5}%)`;
+          // This is a simplified version. A true implementation would require pixel manipulation.
+          // For simplicity, we apply a second brightness filter layer for highlights/shadows.
+          // A more advanced solution would iterate over imageData.
+          if (highlights > 0) filterString += `brightness(${100 + highlights / 2}%) contrast(${100 + highlights/4}%) `;
+          if (highlights < 0) filterString += `brightness(${100 + highlights / 2}%) contrast(${100 + highlights/4}%) `;
+          if (shadows > 0) filterString += `brightness(${100 + shadows / 2}%) contrast(${100 - shadows/4}%) `;
+          if (shadows < 0) filterString += `brightness(${100 + shadows / 2}%) contrast(${100 - shadows/4}%) `;
       }
       
       ctx.filter = filterString.trim();
@@ -541,5 +543,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

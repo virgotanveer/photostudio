@@ -77,8 +77,6 @@ export function ImageWorkspace({
     contrast,
     saturation,
     temperature,
-    highlights,
-    shadows,
   } = editingState;
 
   // This is a simplified mapping from temperature/highlights/shadows to CSS filters.
@@ -87,7 +85,7 @@ export function ImageWorkspace({
 
   const imageStyle: React.CSSProperties = {
     transform: `rotate(${rotation}deg) scaleX(${flip ? -1 : 1})`,
-    filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) drop-shadow(0 0 ${Math.abs(shadows/5)}px rgba(0,0,0,${Math.max(0, -shadows/50)})) drop-shadow(0 0 ${Math.abs(highlights/5)}px rgba(255,255,255,${Math.max(0, highlights/50)})) ${temperature !== 0 ? tempFilter : ''}`,
+    filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) ${temperature !== 0 ? tempFilter : ''}`,
     imageRendering: 'pixelated'
   }
 
@@ -164,5 +162,3 @@ export function ImageWorkspace({
     </div>
   );
 }
-
-    
