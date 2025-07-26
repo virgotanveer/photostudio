@@ -56,6 +56,7 @@ export default function Home() {
     { id: uuidv4(), value: "#e0e0e0" },
     { id: uuidv4(), value: "#ffcdd2" },
     { id: uuidv4(), value: "#c8e6c9" },
+    { id: uuidv4(), value: "#29b4e8" },
   ]);
 
   const handleAddColor = (color: string) => {
