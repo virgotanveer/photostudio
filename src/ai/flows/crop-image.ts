@@ -50,7 +50,7 @@ const cropImageFlow = ai.defineFlow(
       model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: [
         {
-          text: `You are an AI-powered photo editor. You will receive an image. Your task is to perform a center crop on the image to the exact dimensions of ${targetWidth}px width and ${targetHeight}px height. Do not change the content of the image other than cropping it. Return the cropped image.`,
+          text: `You are an AI-powered photo editor. You will receive an image. Your task is to perform a center crop on the image to the exact dimensions of ${targetWidth}px width and ${targetHeight}px height. Do not change the content of the image other than cropping it. The output image must have the exact dimensions specified. Return the cropped image.`,
         },
         {
           media: {

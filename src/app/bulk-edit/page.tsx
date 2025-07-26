@@ -162,18 +162,22 @@ export default function BulkEditPage() {
       '4x6': { width: 6 * DPI, height: 4 * DPI },
       '5x7': { width: 7 * DPI, height: 5 * DPI },
     };
-    const BORDER_WIDTH = 1;
-    const CUTTING_MARGIN = 25;
+    const BORDER_WIDTH = 1; // 1px border
+    const CUTTING_MARGIN = 25; // 25px margin
     const { width: paperWidth, height: paperHeight } = paperDimensions[paperSize];
 
     for (const imageFile of successfulImages) {
         const img = new Image();
         img.src = imageFile.processedUri!;
-        await new Promise(resolve => { img.onload = resolve });
+        
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
 
         const sourceCanvas = document.createElement('canvas');
-        sourceCanvas.width = img.width;
-        sourceCanvas.height = img.height;
+        sourceCanvas.width = img.naturalWidth;
+        sourceCanvas.height = img.naturalHeight;
         const sourceCtx = sourceCanvas.getContext('2d');
         if (!sourceCtx) continue;
         sourceCtx.drawImage(img, 0, 0);
@@ -196,20 +200,19 @@ export default function BulkEditPage() {
         const photoCtx = photoCanvas.getContext("2d");
         if (!photoCtx) continue;
 
-        // Draw border
-        photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
-        photoCtx.lineWidth = BORDER_WIDTH * 2;
-        photoCtx.strokeRect(BORDER_WIDTH, BORDER_WIDTH, sourceCanvas.width, sourceCanvas.height);
-
         // Composite background color if needed
         if (backgroundColor !== 'transparent') {
             photoCtx.fillStyle = backgroundColor;
-            photoCtx.fillRect(BORDER_WIDTH, BORDER_WIDTH, sourceCanvas.width, sourceCanvas.height);
+            photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
         }
         
-        // Draw image over the background and border
+        // Draw image over the background
         photoCtx.drawImage(sourceCanvas, BORDER_WIDTH, BORDER_WIDTH);
 
+        // Draw border
+        photoCtx.strokeStyle = 'rgba(0,0,0,0.5)';
+        photoCtx.lineWidth = BORDER_WIDTH;
+        photoCtx.strokeRect(BORDER_WIDTH / 2, BORDER_WIDTH / 2, photoWithBorderWidth - BORDER_WIDTH, photoWithBorderHeight - BORDER_WIDTH);
 
         if (photoWithBorderWidth === 0 || photoWithBorderHeight === 0) {
             toast({ variant: 'destructive', title: 'Image has no size', description: `Cannot process ${imageFile.file.name} as it has zero width or height.` });
